@@ -1,7 +1,9 @@
 package main
 
-import "github.com/v2pro/wallaby/proxy"
+import (
+	"github.com/v2pro/wallaby/server"
+)
 
 func main() {
-	proxy.Start()
+	server.Start()
 }
