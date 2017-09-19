@@ -39,12 +39,13 @@ func (srm *stream) proxy() {
 		countlog.Error("event!server.failed to connect client", "err", err)
 		return
 	}
-	defer clt.Close()
 	err = req.Write(clt)
 	if err != nil {
+		clt.Close()
 		countlog.Error("event!server.failed to write request", "err", err)
 		return
 	}
+	// clt is handed over to this goroutine now
 	srm.forwardResponsesInGoroutine(clt)
 	srm.forwardFollowingRequests(reader, clt)
 }
@@ -58,9 +59,10 @@ func (srm *stream) forwardResponsesInGoroutine(clt client.OutboundClient) {
 					"stacktrace", countlog.ProvideStacktrace)
 			}
 		}()
+		defer srm.svr.Close()
+		defer clt.Close() // ensure clt is closed after io.Copy finished
 		written, err := io.Copy(srm.svr, clt)
 		countlog.Debug("event!server.copied response", "written", written, "err", err)
-		srm.svr.Close()
 	}()
 }
 
