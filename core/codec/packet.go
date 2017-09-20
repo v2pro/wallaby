@@ -1,17 +1,21 @@
 package codec
 
-import "io"
+import (
+	"io"
+	"bufio"
+)
 
-var Decoders = map[string]Decoder{
-	"HTTP": &httpDecoder{},
+var Codecs = map[string]Codec{
+	"HTTP": &httpCodec{},
 }
 
 type Packet interface {
-	Feature() map[string]string
-	Write(io.Writer) error
+	GetFeature(key string) string
 }
 
-type Decoder interface {
-	DecodeRequest(capture *Capture) (Packet, error)
-	DecodeResponse(capture *Capture) (Packet, error)
+type Codec interface {
+	DecodeRequest(reader *bufio.Reader) (Packet, error)
+	DecodeResponse(reader *bufio.Reader) (Packet, error)
+	EncodeRequest(request Packet, writer io.Writer) error
+	EncodeResponse(response Packet, writer io.Writer) error
 }

@@ -8,23 +8,20 @@ import (
 	"io"
 	"time"
 	"github.com/v2pro/wallaby/core/codec"
+	"bufio"
 )
 
 type stream struct {
-	svr             *net.TCPConn
-	serverDecoder   codec.Decoder
-	requestCapture  *codec.Capture
-	responseCapture *codec.Capture
+	svr       *net.TCPConn
+	svrCodec  codec.Codec
+	svrReader *bufio.Reader
 }
 
-func newStream(svr *net.TCPConn, serverDecoder codec.Decoder) *stream {
-	requestCapture := &codec.Capture{}
-	requestCapture.Reset(svr)
+func newStream(svr *net.TCPConn, svrCodec codec.Codec) *stream {
 	return &stream{
-		svr:             svr,
-		serverDecoder:   serverDecoder,
-		requestCapture:  requestCapture,
-		responseCapture: &codec.Capture{},
+		svr:       svr,
+		svrCodec:  svrCodec,
+		svrReader: bufio.NewReaderSize(svr, 2048),
 	}
 }
 
@@ -47,28 +44,32 @@ func (srm *stream) roundtrip() bool {
 	if req == nil {
 		return false
 	}
-	qualifier, clientDecoder := core.Route(req)
+	qualifier := core.Route(req)
 	clt, err := client.Get(qualifier)
 	if err != nil {
 		countlog.Warn("event!server.failed to connect client", "err", err)
 		return false
 	}
-	if srm.handleRequest(clt, req, clientDecoder) {
+	if srm.handleRequest(clt, req) {
 		return true
 	}
+	// because the client from pool might be disconnected
+	// we get a "new" client and try again
+	// the "old" client will be discarded because read/write incurred error which marked it as invalid
+	// this way we can expire invalid client and re-fill the pool with new one
 	countlog.Debug("event!server.re-connect client")
 	clt, err = client.GetNew(qualifier)
 	if err != nil {
 		countlog.Warn("event!server.failed to re-connect client", "err", err)
 		return false
 	}
-	return srm.handleRequest(clt, req, clientDecoder)
+	return srm.handleRequest(clt, req)
 }
 
 func (srm *stream) readRequest() codec.Packet {
 	for {
 		srm.svr.SetReadDeadline(time.Now().Add(time.Second * 5))
-		req, err := srm.serverDecoder.DecodeRequest(srm.requestCapture)
+		req, err := srm.svrCodec.DecodeRequest(srm.svrReader)
 		if err == io.EOF {
 			countlog.Trace("event!server.inbound conn closed")
 			return nil
@@ -82,13 +83,13 @@ func (srm *stream) readRequest() codec.Packet {
 }
 
 func (srm *stream) handleRequest(
-	clt client.Client, req codec.Packet, clientDecoder codec.Decoder) bool {
+	clt client.Client, req codec.Packet) bool {
 	defer clt.Close()
-	resp, err := clt.Handle(req, srm.responseCapture, clientDecoder)
+	resp, err := clt.Handle(req)
 	if err != nil {
 		return false
 	}
-	err = resp.Write(srm.svr)
+	err = srm.svrCodec.EncodeResponse(resp, srm.svr)
 	if err != nil {
 		countlog.Warn("event!server.failed to write response", "err", err)
 		return false

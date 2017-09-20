@@ -8,7 +8,7 @@ import (
 
 func Start() {
 	addr := "127.0.0.1:8848"
-	decoder := codec.Decoders["HTTP"]
+	decoder := codec.Codecs["HTTP"]
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		countlog.Error("event!server.failed to bind proxy port", "err", err)
