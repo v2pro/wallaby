@@ -6,21 +6,44 @@ import (
 	"github.com/v2pro/wallaby/core"
 )
 
-type httpInboundRequest struct {
+type httpRequestPacket struct {
 	*http.Request
 }
 
-func (req *httpInboundRequest) Feature() map[string]string {
+func (req *httpRequestPacket) Feature() map[string]string {
 	return map[string]string{}
 }
 
-type httpRequestDecoder struct {
+type httpResponsePacket struct {
+	*http.Response
 }
 
-func (decoder *httpRequestDecoder) decode(reader *bufio.Reader) (core.InboundRequest, error){
+func (resp *httpResponsePacket) Feature() map[string]string {
+	return map[string]string{}
+}
+
+type httpDecoder struct {
+}
+
+func (decoder *httpDecoder) decodeRequest(reader *bufio.Reader) (core.Packet, error) {
 	httpReq, err := http.ReadRequest(reader)
 	if err != nil {
 		return nil, err
 	}
-	return &httpInboundRequest{httpReq}, nil
+	httpReq.Header.Set("Connection", "keep-alive")
+	httpReq.Header.Set("Keep-Alive", "timeout=4")
+	httpReq.Close = false
+	return &httpRequestPacket{httpReq}, nil
+}
+
+func (decoder *httpDecoder) decodeResponse(reader *bufio.Reader) (core.Packet, error) {
+	httpResp, err := http.ReadResponse(reader, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	httpResp.Header.Set("Connection", "keep-alive")
+	httpResp.Header.Set("Keep-Alive", "timeout=4")
+	httpResp.Close = false
+	return &httpResponsePacket{httpResp}, nil
 }

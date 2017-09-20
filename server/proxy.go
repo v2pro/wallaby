@@ -5,8 +5,8 @@ import (
 	"github.com/v2pro/wallaby/countlog"
 )
 
-var decoders = map[string]requestDecoder{
-	"http": &httpRequestDecoder{},
+var decoders = map[string]decoder{
+	"http": &httpDecoder{},
 }
 
 func Start() {
@@ -28,6 +28,6 @@ func Start() {
 			svr: conn.(*net.TCPConn),
 			decoder: decoder,
 		}
-		srm.proxy()
+		go srm.proxy()
 	}
 }

@@ -1,6 +1,6 @@
 package core
 
-func Route(request InboundRequest) OutboundQualifier {
+func Route(request Packet) OutboundQualifier {
 	return OutboundQualifier{
 		ServiceName: "default",
 		ServiceDC: "localhost",

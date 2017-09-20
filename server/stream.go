@@ -7,15 +7,17 @@ import (
 	"github.com/v2pro/wallaby/core"
 	"github.com/v2pro/wallaby/client"
 	"io"
+	"os"
 )
 
-type requestDecoder interface {
-	decode(reader *bufio.Reader) (core.InboundRequest, error)
+type decoder interface {
+	decodeRequest(reader *bufio.Reader) (core.Packet, error)
+	decodeResponse(reader *bufio.Reader) (core.Packet, error)
 }
 
 type stream struct {
 	svr     *net.TCPConn
-	decoder requestDecoder
+	decoder decoder
 }
 
 func (srm *stream) proxy() {
@@ -27,49 +29,58 @@ func (srm *stream) proxy() {
 		}
 	}()
 	defer srm.svr.Close()
-	c := &capture{
-		reader: srm.svr,
-		bytesRead: make([]byte, 0, 2048),
+	requestCapture := bufio.NewReaderSize(srm.svr, 2048)
+	requestCapture.Reset(srm.svr)
+	responseCapture := bufio.NewReaderSize(os.Stderr, 2048)
+	for srm.roundtrip(requestCapture, responseCapture) {
+
 	}
-	reader := bufio.NewReaderSize(c, 2048)
-	req, err := srm.decoder.decode(reader)
+}
+
+func (srm *stream) roundtrip(requestReader *bufio.Reader, responseReader *bufio.Reader) bool {
+	req, err := srm.decoder.decodeRequest(requestReader)
+	if err == io.EOF {
+		countlog.Trace("event!server.inbound conn closed")
+		return false
+	}
 	if err != nil {
 		countlog.Warn("event!server.failed to read request", "err", err)
-		return
+		return false
 	}
 	qualifier := core.Route(req)
-	clt, err := client.Connect(qualifier)
+	clt, err := client.Get(qualifier)
 	if err != nil {
 		countlog.Warn("event!server.failed to connect client", "err", err)
-		return
+		return false
 	}
-	defer clt.Close()
-	_, err = clt.Write(c.bytesRead)
+	if srm.handleRequest(req, clt, responseReader) {
+		return true
+	}
+	clt, err = client.GetNew(qualifier)
 	if err != nil {
-		countlog.Debug("event!server.failed to write request", "err", err)
-		return
+		countlog.Warn("event!server.failed to re-connect client", "err", err)
+		return false
 	}
-	srm.forwardResponsesInGoroutine(clt)
-	srm.forwardFollowingRequests(clt)
+	return srm.handleRequest(req, clt, responseReader)
 }
 
-func (srm *stream) forwardResponsesInGoroutine(clt client.OutboundClient) {
-	go func() {
-		defer func() {
-			recovered := recover()
-			if recovered != nil {
-				countlog.Fatal("event!server.panic", "err", recovered,
-					"stacktrace", countlog.ProvideStacktrace)
-			}
-		}()
-		defer srm.svr.Close()
-		defer clt.Close()
-		written, err := io.CopyBuffer(srm.svr, clt, make([]byte, 2048))
-		countlog.Debug("event!server.copied response", "written", written, "err", err)
-	}()
-}
-
-func (srm *stream) forwardFollowingRequests(clt client.OutboundClient) {
-	written, err := io.CopyBuffer(clt, srm.svr, make([]byte, 2048))
-	countlog.Debug("event!server.copied request", "written", written, "err", err)
+func (srm *stream) handleRequest(req core.Packet, clt client.OutboundClient, responseReader *bufio.Reader) bool {
+	defer clt.Close()
+	responseReader.Reset(clt)
+	err := req.Write(clt)
+	if err != nil {
+		countlog.Warn("event!server.failed to write request", "err", err)
+		return false
+	}
+	resp, err := srm.decoder.decodeResponse(responseReader)
+	if err != nil {
+		countlog.Warn("event!server.failed to read response", "err", err)
+		return false
+	}
+	err = resp.Write(srm.svr)
+	if err != nil {
+		countlog.Warn("event!server.failed to write response", "err", err)
+		return false
+	}
+	return true
 }

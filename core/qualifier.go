@@ -5,3 +5,7 @@ type OutboundQualifier struct {
 	ServiceDC string
 	ServiceVersion string
 }
+
+func (qualifier *OutboundQualifier) String() string {
+	return qualifier.ServiceName + "-" + qualifier.ServiceDC + "@" + qualifier.ServiceVersion
+}
