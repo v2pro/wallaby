@@ -29,10 +29,9 @@ func (srm *stream) proxy() {
 		}
 	}()
 	defer srm.svr.Close()
-	requestCapture := bufio.NewReaderSize(srm.svr, 2048)
-	requestCapture.Reset(srm.svr)
-	responseCapture := bufio.NewReaderSize(os.Stderr, 2048)
-	for srm.roundtrip(requestCapture, responseCapture) {
+	requestReader := bufio.NewReaderSize(srm.svr, 2048)
+	responseReader := bufio.NewReaderSize(os.Stdin, 2048) // reader not set yet
+	for srm.roundtrip(requestReader, responseReader) {
 
 	}
 }
