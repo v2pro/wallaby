@@ -14,6 +14,6 @@ type OutboundClient interface {
 }
 
 func Connect(qualifier core.OutboundQualifier) (OutboundClient, error) {
-	return net.Dial("tcp", "pypi.doubanio.com:80")
+	return net.Dial("tcp", "127.0.0.1:8849")
 }
 
