@@ -3,21 +3,29 @@ package server
 import (
 	"net"
 	"github.com/v2pro/wallaby/countlog"
-	"bufio"
 	"github.com/v2pro/wallaby/core"
 	"github.com/v2pro/wallaby/client"
 	"io"
-	"os"
+	"time"
+	"github.com/v2pro/wallaby/core/codec"
 )
 
-type decoder interface {
-	decodeRequest(reader *bufio.Reader) (core.Packet, error)
-	decodeResponse(reader *bufio.Reader) (core.Packet, error)
+type stream struct {
+	svr             *net.TCPConn
+	serverDecoder   codec.Decoder
+	requestCapture  *codec.Capture
+	responseCapture *codec.Capture
 }
 
-type stream struct {
-	svr     *net.TCPConn
-	decoder decoder
+func newStream(svr *net.TCPConn, serverDecoder codec.Decoder) *stream {
+	requestCapture := &codec.Capture{}
+	requestCapture.Reset(svr)
+	return &stream{
+		svr:             svr,
+		serverDecoder:   serverDecoder,
+		requestCapture:  requestCapture,
+		responseCapture: &codec.Capture{},
+	}
 }
 
 func (srm *stream) proxy() {
@@ -27,53 +35,57 @@ func (srm *stream) proxy() {
 			countlog.Fatal("event!server.panic", "err", recovered,
 				"stacktrace", countlog.ProvideStacktrace)
 		}
+		srm.svr.Close()
 	}()
-	defer srm.svr.Close()
-	requestReader := bufio.NewReaderSize(srm.svr, 2048)
-	responseReader := bufio.NewReaderSize(os.Stdin, 2048) // reader not set yet
-	for srm.roundtrip(requestReader, responseReader) {
+	for srm.roundtrip() {
 
 	}
 }
 
-func (srm *stream) roundtrip(requestReader *bufio.Reader, responseReader *bufio.Reader) bool {
-	req, err := srm.decoder.decodeRequest(requestReader)
-	if err == io.EOF {
-		countlog.Trace("event!server.inbound conn closed")
+func (srm *stream) roundtrip() bool {
+	req := srm.readRequest()
+	if req == nil {
 		return false
 	}
-	if err != nil {
-		countlog.Warn("event!server.failed to read request", "err", err)
-		return false
-	}
-	qualifier := core.Route(req)
+	qualifier, clientDecoder := core.Route(req)
 	clt, err := client.Get(qualifier)
 	if err != nil {
 		countlog.Warn("event!server.failed to connect client", "err", err)
 		return false
 	}
-	if srm.handleRequest(req, clt, responseReader) {
+	if srm.handleRequest(clt, req, clientDecoder) {
 		return true
 	}
+	countlog.Debug("event!server.re-connect client")
 	clt, err = client.GetNew(qualifier)
 	if err != nil {
 		countlog.Warn("event!server.failed to re-connect client", "err", err)
 		return false
 	}
-	return srm.handleRequest(req, clt, responseReader)
+	return srm.handleRequest(clt, req, clientDecoder)
 }
 
-func (srm *stream) handleRequest(req core.Packet, clt client.OutboundClient, responseReader *bufio.Reader) bool {
-	defer clt.Close()
-	responseReader.Reset(clt)
-	err := req.Write(clt)
-	if err != nil {
-		countlog.Warn("event!server.failed to write request", "err", err)
-		return false
+func (srm *stream) readRequest() codec.Packet {
+	for {
+		srm.svr.SetReadDeadline(time.Now().Add(time.Second * 5))
+		req, err := srm.serverDecoder.DecodeRequest(srm.requestCapture)
+		if err == io.EOF {
+			countlog.Trace("event!server.inbound conn closed")
+			return nil
+		}
+		if err != nil {
+			countlog.Warn("event!server.failed to read request", "err", err)
+			return nil
+		}
+		return req
 	}
-	resp, err := srm.decoder.decodeResponse(responseReader)
+}
+
+func (srm *stream) handleRequest(
+	clt client.Client, req codec.Packet, clientDecoder codec.Decoder) bool {
+	defer clt.Close()
+	resp, err := clt.Handle(req, srm.responseCapture, clientDecoder)
 	if err != nil {
-		countlog.Warn("event!server.failed to read response", "err", err)
 		return false
 	}
 	err = resp.Write(srm.svr)

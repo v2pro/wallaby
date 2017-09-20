@@ -9,7 +9,7 @@ import (
 func main() {
 	runtime.GOMAXPROCS(1)
 	asyncLogWriter := countlog.NewAsyncLogWriter(
-		countlog.LEVEL_INFO,
+		countlog.LEVEL_TRACE,
 		countlog.NewFileLogOutput("STDERR"))
 	asyncLogWriter.Start()
 	countlog.LogWriters = append(countlog.LogWriters, asyncLogWriter)

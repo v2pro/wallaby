@@ -6,10 +6,10 @@ import (
 	"sync"
 )
 
-var pools = map[core.OutboundQualifier]chan *net.TCPConn{}
+var pools = map[core.Qualifier]chan *net.TCPConn{}
 var poolsMutex = &sync.Mutex{}
 
-func getPool(qualifier core.OutboundQualifier) chan *net.TCPConn {
+func getPool(qualifier core.Qualifier) chan *net.TCPConn {
 	poolsMutex.Lock()
 	defer poolsMutex.Unlock()
 	pool := pools[qualifier]
