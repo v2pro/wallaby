@@ -50,7 +50,7 @@ func (srm *stream) proxy() {
 		return
 	}
 	srm.forwardResponsesInGoroutine(clt)
-	srm.forwardFollowingRequests(reader, clt)
+	srm.forwardFollowingRequests(clt)
 }
 
 func (srm *stream) forwardResponsesInGoroutine(clt client.OutboundClient) {
@@ -69,7 +69,7 @@ func (srm *stream) forwardResponsesInGoroutine(clt client.OutboundClient) {
 	}()
 }
 
-func (srm *stream) forwardFollowingRequests(reader *bufio.Reader, clt client.OutboundClient) {
+func (srm *stream) forwardFollowingRequests(clt client.OutboundClient) {
 	written, err := io.CopyBuffer(clt, srm.svr, make([]byte, 2048))
 	countlog.Debug("event!server.copied request", "written", written, "err", err)
 }
