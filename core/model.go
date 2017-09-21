@@ -15,7 +15,7 @@ import (
 // 		or stream (when protocol is multiplex, there might be multiple streams on one connection)
 //		this mode do not need to do stateful protocol handling, and can route with more information
 // per packet routing (a.k.a RPC mode): RoutingDecision might be different for different request packet
-//		this is mode is most powerful and most costly, need complete implementation of protocol
+//		this mode is most powerful and most costly, need complete implementation of protocol
 //		including encoding/decoding/stateful action sequences
 
 // accept ServerConn from inbound

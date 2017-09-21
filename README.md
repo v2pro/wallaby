@@ -1,2 +1,3 @@
 # wallaby
-minimal service mesh proxy
+
+minimal or maximum service mesh with great flexibility
