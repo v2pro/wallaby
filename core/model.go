@@ -7,7 +7,7 @@ import (
 )
 
 // Overall Proxy Sequence
-// ServerConn => Stream => ServerRequest => Service => ClientTarget
+// ServerConn => RoutingMode => ServerRequest => ServiceKinds => ServiceInstance => RoutingDecision
 // there are three modes
 // per connection routing: RoutingDecision is determined by ServerConn
 //		this mode is most generic, can handle any kind of tcp stream without knowing the protocol
