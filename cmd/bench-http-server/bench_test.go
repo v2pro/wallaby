@@ -8,10 +8,29 @@ import (
 	"net/http/httputil"
 	"bufio"
 	"io/ioutil"
+	"fmt"
 )
 
 func Benchmark_long_connection(b *testing.B) {
-	addr := "127.0.0.1:8849"
+	b.Run("proxy 1kb", func(b *testing.B) {
+		fmt.Println(b.Name())
+		bench(b, "127.0.0.1:8848", "/oneKB")
+	})
+	b.Run("direct 1kb", func(b *testing.B) {
+		fmt.Println(b.Name())
+		bench(b, "127.0.0.1:8849", "/oneKB")
+	})
+	b.Run("proxy 10kb", func(b *testing.B) {
+		fmt.Println(b.Name())
+		bench(b, "127.0.0.1:8848", "/tenKB")
+	})
+	b.Run("direct 10kb", func(b *testing.B) {
+		fmt.Println(b.Name())
+		bench(b, "127.0.0.1:8849", "/tenKB")
+	})
+}
+
+func bench(b *testing.B, addr string, url string) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		b.Error(err)

@@ -5,11 +5,13 @@ import (
 	"io"
 	"fmt"
 	"reflect"
-	"bufio"
+	"io/ioutil"
 )
 
 type httpRequestPacket struct {
 	*http.Request
+	body []byte
+	origReq []byte
 }
 
 func (req *httpRequestPacket) GetFeature(key string) string {
@@ -18,6 +20,8 @@ func (req *httpRequestPacket) GetFeature(key string) string {
 
 type httpResponsePacket struct {
 	*http.Response
+	body []byte
+	origResp []byte
 }
 
 func (resp *httpResponsePacket) GetFeature(key string) string {
@@ -27,30 +31,43 @@ func (resp *httpResponsePacket) GetFeature(key string) string {
 type httpCodec struct {
 }
 
-func (codec *httpCodec) DecodeRequest(reader *bufio.Reader) (Packet, error) {
-	httpReq, err := http.ReadRequest(reader)
+func (codec *httpCodec) DecodeRequest(capture *Capture) (Packet, error) {
+	httpReq, err := http.ReadRequest(capture.Reader())
+	if err != nil {
+		return nil, err
+	}
+	body, err := ioutil.ReadAll(httpReq.Body)
 	if err != nil {
 		return nil, err
 	}
 	return &httpRequestPacket{
 		Request: httpReq,
+		body: body,
+		origReq: capture.Bytes(),
 	}, nil
 }
 
-func (codec *httpCodec) DecodeResponse(reader *bufio.Reader) (Packet, error) {
-	httpResp, err := http.ReadResponse(reader, nil)
+func (codec *httpCodec) DecodeResponse(capture *Capture) (Packet, error) {
+	httpResp, err := http.ReadResponse(capture.Reader(), nil)
+	if err != nil {
+		return nil, err
+	}
+	body, err := ioutil.ReadAll(httpResp.Body)
 	if err != nil {
 		return nil, err
 	}
 	return &httpResponsePacket{
 		Response: httpResp,
+		body: body,
+		origResp: capture.Bytes(),
 	}, nil
 }
 
 func (codec *httpCodec) EncodeRequest(request Packet, writer io.Writer) error {
 	switch typed := request.(type) {
 	case *httpRequestPacket:
-		return typed.Request.Write(writer)
+		_, err := writer.Write(typed.origReq)
+		return err
 	default:
 		return fmt.Errorf("http codec can not encode request of type: " + reflect.TypeOf(request).String())
 	}
@@ -59,7 +76,8 @@ func (codec *httpCodec) EncodeRequest(request Packet, writer io.Writer) error {
 func (codec *httpCodec) EncodeResponse(response Packet, writer io.Writer) error {
 	switch typed := response.(type) {
 	case *httpResponsePacket:
-		return typed.Response.Write(writer)
+		_, err := writer.Write(typed.origResp)
+		return err
 	default:
 		return fmt.Errorf("http codec can not encode response of type: " + reflect.TypeOf(response).String())
 	}

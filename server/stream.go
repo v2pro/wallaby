@@ -8,20 +8,24 @@ import (
 	"io"
 	"time"
 	"github.com/v2pro/wallaby/core/codec"
-	"bufio"
 )
 
 type stream struct {
 	svr       *net.TCPConn
 	svrCodec  codec.Codec
-	svrReader *bufio.Reader
+	svrCapture *codec.Capture
+	cltCapture *codec.Capture
 }
 
 func newStream(svr *net.TCPConn, svrCodec codec.Codec) *stream {
+	svrCapture := &codec.Capture{}
+	svrCapture.SetReader(svr)
+	cltCapture := &codec.Capture{}
 	return &stream{
 		svr:       svr,
 		svrCodec:  svrCodec,
-		svrReader: bufio.NewReaderSize(svr, 2048),
+		svrCapture: svrCapture,
+		cltCapture: cltCapture,
 	}
 }
 
@@ -69,7 +73,7 @@ func (srm *stream) roundtrip() bool {
 func (srm *stream) readRequest() codec.Packet {
 	for {
 		srm.svr.SetReadDeadline(time.Now().Add(time.Second * 5))
-		req, err := srm.svrCodec.DecodeRequest(srm.svrReader)
+		req, err := srm.svrCodec.DecodeRequest(srm.svrCapture)
 		if err == io.EOF {
 			countlog.Trace("event!server.inbound conn closed")
 			return nil
@@ -85,7 +89,7 @@ func (srm *stream) readRequest() codec.Packet {
 func (srm *stream) handleRequest(
 	clt client.Client, req codec.Packet) bool {
 	defer clt.Close()
-	resp, err := clt.Handle(req)
+	resp, err := clt.Handle(req, srm.cltCapture)
 	if err != nil {
 		return false
 	}

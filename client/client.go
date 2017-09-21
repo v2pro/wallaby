@@ -11,7 +11,7 @@ import (
 )
 
 type Client interface {
-	Handle(req codec.Packet) (codec.Packet, error)
+	Handle(req codec.Packet, capture *codec.Capture) (codec.Packet, error)
 	io.Closer
 }
 
@@ -23,14 +23,19 @@ type pooledClient struct {
 	reader    *bufio.Reader
 }
 
-func (clt *pooledClient) Handle(req codec.Packet) (codec.Packet, error) {
+func (clt *pooledClient) Handle(req codec.Packet, capture *codec.Capture) (codec.Packet, error) {
 	err := clt.codec.EncodeRequest(req, clt)
 	if err != nil {
 		clt.isInvalid.Store(true)
 		countlog.Warn("event!client.failed to write request", "err", err)
 		return nil, err
 	}
-	resp, err := clt.codec.DecodeResponse(clt.reader)
+	err = capture.SetReader(clt)
+	if err != nil {
+		countlog.Warn("event!client.capture has remaining buffer", "err", err)
+		return nil, err
+	}
+	resp, err := clt.codec.DecodeResponse(capture)
 	if err != nil {
 		clt.isInvalid.Store(true)
 		countlog.Warn("event!server.failed to read response", "err", err)

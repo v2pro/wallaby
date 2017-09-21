@@ -2,7 +2,6 @@ package codec
 
 import (
 	"io"
-	"bufio"
 )
 
 var Codecs = map[string]Codec{
@@ -14,8 +13,8 @@ type Packet interface {
 }
 
 type Codec interface {
-	DecodeRequest(reader *bufio.Reader) (Packet, error)
-	DecodeResponse(reader *bufio.Reader) (Packet, error)
+	DecodeRequest(capture *Capture) (Packet, error)
+	DecodeResponse(capture *Capture) (Packet, error)
 	EncodeRequest(request Packet, writer io.Writer) error
 	EncodeResponse(response Packet, writer io.Writer) error
 }
