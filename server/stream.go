@@ -48,8 +48,10 @@ func (srm *stream) roundtrip() bool {
 	if req == nil {
 		return false
 	}
-	qualifier := core.Route(req)
-	clt, err := client.Get(qualifier)
+	target := core.RouteServerRequest(&core.ServerRequest{
+		Packet: req,
+	})
+	clt, err := client.Get(target)
 	if err != nil {
 		countlog.Warn("event!server.failed to connect client", "err", err)
 		return false
@@ -62,7 +64,7 @@ func (srm *stream) roundtrip() bool {
 	// the "old" client will be discarded because read/write incurred error which marked it as invalid
 	// this way we can expire invalid client and re-fill the pool with new one
 	countlog.Debug("event!server.re-connect client")
-	clt, err = client.GetNew(qualifier)
+	clt, err = client.GetNew(target)
 	if err != nil {
 		countlog.Warn("event!server.failed to re-connect client", "err", err)
 		return false

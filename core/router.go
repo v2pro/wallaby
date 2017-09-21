@@ -1,11 +1,17 @@
 package core
 
-import "github.com/v2pro/wallaby/core/codec"
+func RouteServerConn(serverConn *ServerConn) *Stream {
+	return &Stream{}
+}
 
-func Route(request codec.Packet) Qualifier {
-	return Qualifier{
-		ServiceName: "default",
-		ServiceDC: "localhost",
-		ServiceVersion: "default",
+func RouteServerRequest(serverRequest *ServerRequest) *RoutingDecision {
+	return &RoutingDecision{
+		ServiceInstance: &ServiceInstance{
+			Service: Service{
+				ServiceName:    "default",
+				ServiceCluster: "localhost",
+				ServiceVersion: "default",
+			},
+		},
 	}
 }

@@ -78,8 +78,8 @@ func (clt *pooledClient) Close() error {
 	}
 }
 
-func Get(qualifier core.Qualifier) (Client, error) {
-	pool := getPool(qualifier)
+func Get(target core.ServiceInstance) (Client, error) {
+	pool := getPool(target.Service)
 	select {
 	case client := <-pool:
 		countlog.Trace("event!client.reuse",
