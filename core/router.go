@@ -1,10 +1,10 @@
 package core
 
-func RouteServerConn(serverConn *ServerConn) *Stream {
-	return &Stream{}
+func HowToRoute(serverConn *ServerConn) RoutingMode {
+	return ""
 }
 
-func RouteServerRequest(serverRequest *ServerRequest) *RoutingDecision {
+func Route(serverRequest *ServerRequest) *RoutingDecision {
 	return &RoutingDecision{
 		ServiceInstance: &ServiceInstance{
 			Service: Service{
