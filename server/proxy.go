@@ -1,13 +1,14 @@
 package server
 
 import (
-	"net"
-	"github.com/v2pro/wallaby/countlog"
+	"github.com/v2pro/wallaby/config"
 	"github.com/v2pro/wallaby/core/codec"
+	"github.com/v2pro/wallaby/countlog"
+	"net"
 )
 
 func Start() {
-	addr := "127.0.0.1:8848"
+	addr := config.ProxyAddr
 	decoder := codec.Codecs["HTTP"]
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {

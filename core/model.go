@@ -2,8 +2,9 @@ package core
 
 import (
 	"net"
-	"github.com/v2pro/wallaby/core/codec"
 	"time"
+
+	"github.com/v2pro/wallaby/core/codec"
 )
 
 // Overall Proxy Sequence
@@ -25,34 +26,28 @@ import (
 // dst service name might be inferred from RemoteAddr or LocalAddr
 
 type ServerConn struct {
-	SrcServiceName string
+	SrcServiceName    string
 	SrcServiceCluster string
-	DstServiceName string
-	LocalAddr *net.TCPAddr
-	RemoteAddr *net.TCPAddr
-	ServerProtocol string
+	DstServiceName    string
+	LocalAddr         *net.TCPAddr
+	RemoteAddr        *net.TCPAddr
+	ServerProtocol    string
 }
 
 // ServerConn => RoutingMode decision point
 // we may handle different incoming port using different stream forwarding mode
-
-type RoutingMode string
-
-const PerConnection RoutingMode = "PerConnection"
-const PerStream RoutingMode = "PerStream"
-const PerPacket RoutingMode = "PerPacket"
 
 // read ServerRequest from inbound
 // Packet might be nil if routing mode is per connection
 // src/dst service is extracted from packet, might be empty
 
 type ServerRequest struct {
-	ServerConn *ServerConn
-	RoutingMode RoutingMode
-	SrcServiceName string
+	ServerConn        *ServerConn
+	RoutingMode       RoutingMode
+	SrcServiceName    string
 	SrcServiceCluster string
-	DstServiceName string
-	Packet codec.Packet
+	DstServiceName    string
+	Packet            codec.Packet
 }
 
 // ServerRequest => ServiceKinds decision point
@@ -67,16 +62,16 @@ type ServerRequest struct {
 
 type ServiceKind struct {
 	// what service actually is, determined by its source code
-	ServiceName string
+	Name string
 	// traffic segregation by src/type/dst etc,
 	// data center is the most often used clustering strategy
 	// clusters are defined for management reasons
-	ServiceCluster string
+	Cluster string
 	// multiple versions of the source code might be running concurrently
 	// to support service version roll-out and roll-back without re-deployment
-	ServiceVersion string
+	Version string
 	// one running service os process might speak more than one protocol on different tcp ports
-	ServiceProtocol string
+	Protocol ProtocolType
 }
 
 // ServiceKinds => RoutingDecision decision point
@@ -85,23 +80,22 @@ type ServiceKind struct {
 // the instance is picked considering the most optimal ServiceKind and most optimal instance within that kind
 
 type ServiceInstance struct {
-	ServiceKind ServiceKind
-	RemoteAddr *net.TCPAddr
+	ServiceKind *ServiceKind
+	RemoteAddr  *net.TCPAddr
 }
-
-type Verdict int
-
-const Accept Verdict = 1
-const Reject Verdict = 2
-const Wait Verdict = 3
 
 type RoutingDecision struct {
 	ServiceInstance *ServiceInstance
-	Verdict Verdict
-	RejectResponse interface{}
-	WaitDuration time.Duration
+	Verdict         Verdict
+	RejectResponse  interface{}
+	WaitDuration    time.Duration
 }
 
 func (srv *ServiceKind) String() string {
-	return srv.ServiceName + "-" + srv.ServiceCluster + "@" + srv.ServiceVersion
+	return srv.Name + "-" + srv.Cluster + "@" + srv.Version
+}
+
+type ServiceNode struct {
+	Qualifier string `json:"qualifier"`
+	Address   string `json:"address"`
 }

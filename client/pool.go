@@ -3,6 +3,7 @@ package client
 import (
 	"github.com/v2pro/wallaby/core"
 	"sync"
+	"github.com/v2pro/wallaby/config"
 )
 
 var pools = map[string]chan *pooledClient{}
@@ -13,7 +14,7 @@ func getPool(qualifier *core.ServiceKind) chan *pooledClient {
 	defer poolsMutex.Unlock()
 	pool := pools[qualifier.String()]
 	if pool == nil {
-		pool = make(chan *pooledClient, 8)
+		pool = make(chan *pooledClient, config.MaxClientPoolSize)
 		pools[qualifier.String()] = pool
 	}
 	return pool

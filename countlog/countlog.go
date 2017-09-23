@@ -1,10 +1,10 @@
 package countlog
 
 import (
-	"runtime"
 	"fmt"
-	"strings"
 	"os"
+	"runtime"
+	"strings"
 	"time"
 )
 
@@ -18,20 +18,44 @@ const LEVEL_FATAL = 60
 func Trace(event string, properties ...interface{}) {
 	log(LEVEL_TRACE, event, properties)
 }
+func Tracef(fmtStr string, args ...interface{}) {
+	event := fmt.Sprintf(fmtStr, args)
+	log(LEVEL_TRACE, event, nil)
+}
 func Debug(event string, properties ...interface{}) {
 	log(LEVEL_DEBUG, event, properties)
+}
+func Debugf(fmtStr string, args ...interface{}) {
+	event := fmt.Sprintf(fmtStr, args)
+	log(LEVEL_DEBUG, event, nil)
 }
 func Info(event string, properties ...interface{}) {
 	log(LEVEL_INFO, event, properties)
 }
+func Infof(fmtStr string, args ...interface{}) {
+	event := fmt.Sprintf(fmtStr, args)
+	log(LEVEL_INFO, event, nil)
+}
 func Warn(event string, properties ...interface{}) {
 	log(LEVEL_WARN, event, properties)
+}
+func Warnf(fmtStr string, args ...interface{}) {
+	event := fmt.Sprintf(fmtStr, args)
+	log(LEVEL_WARN, event, nil)
 }
 func Error(event string, properties ...interface{}) {
 	log(LEVEL_ERROR, event, properties)
 }
+func Errorf(fmtStr string, args ...interface{}) {
+	event := fmt.Sprintf(fmtStr, args)
+	log(LEVEL_ERROR, event, nil)
+}
 func Fatal(event string, properties ...interface{}) {
 	log(LEVEL_FATAL, event, properties)
+}
+func Fatalf(fmtStr string, args ...interface{}) {
+	event := fmt.Sprintf(fmtStr, args)
+	log(LEVEL_FATAL, event, nil)
 }
 func Log(level int, event string, properties ...interface{}) {
 	log(level, event, properties)

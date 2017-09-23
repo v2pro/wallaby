@@ -1,13 +1,13 @@
 package client
 
 import (
-	"bufio"
-	"github.com/v2pro/wallaby/core"
-	"github.com/v2pro/wallaby/core/codec"
-	"github.com/v2pro/wallaby/countlog"
-	"go.uber.org/atomic"
 	"io"
+	"github.com/v2pro/wallaby/core"
 	"net"
+	"go.uber.org/atomic"
+	"github.com/v2pro/wallaby/countlog"
+	"github.com/v2pro/wallaby/core/codec"
+	"bufio"
 )
 
 type Client interface {
@@ -79,7 +79,7 @@ func (clt *pooledClient) Close() error {
 }
 
 func Get(target *core.ServiceInstance) (Client, error) {
-	pool := getPool(&target.ServiceKind)
+	pool := getPool(target.ServiceKind)
 	select {
 	case client := <-pool:
 		countlog.Trace("event!client.reuse",
@@ -87,7 +87,7 @@ func Get(target *core.ServiceInstance) (Client, error) {
 			"conn", client.TCPConn.LocalAddr())
 		return client, nil
 	default:
-		return GetNew(&target.ServiceKind)
+		return GetNew(target.ServiceKind)
 	}
 }
 
@@ -97,7 +97,11 @@ func GetNew(qualifier *core.ServiceKind) (Client, error) {
 }
 
 func connect(pool chan *pooledClient, qualifier *core.ServiceKind) (Client, error) {
-	conn, err := net.Dial("tcp", "127.0.0.1:8849")
+	addr, err := core.FindServiceAddr(qualifier)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
