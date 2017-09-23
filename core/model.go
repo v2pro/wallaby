@@ -26,28 +26,26 @@ import (
 // dst service name might be inferred from RemoteAddr or LocalAddr
 
 type ServerConn struct {
-	SrcServiceName    string
-	SrcServiceCluster string
-	DstServiceName    string
-	LocalAddr         *net.TCPAddr
-	RemoteAddr        *net.TCPAddr
-	ServerProtocol    string
+	LocalAddr  *net.TCPAddr
+	RemoteAddr *net.TCPAddr
 }
 
 // ServerConn => RoutingMode decision point
 // we may handle different incoming port using different stream forwarding mode
+
+type ConnForwardingDecision struct {
+	RoutingMode    RoutingMode
+	ServerProtocol string
+}
 
 // read ServerRequest from inbound
 // Packet might be nil if routing mode is per connection
 // src/dst service is extracted from packet, might be empty
 
 type ServerRequest struct {
-	ServerConn        *ServerConn
-	RoutingMode       RoutingMode
-	SrcServiceName    string
-	SrcServiceCluster string
-	DstServiceName    string
-	Packet            codec.Packet
+	ServerConn             *ServerConn
+	ConnForwardingDecision *ConnForwardingDecision
+	Packet                 codec.Packet
 }
 
 // ServerRequest => ServiceKinds decision point
