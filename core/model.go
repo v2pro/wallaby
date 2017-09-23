@@ -7,18 +7,6 @@ import (
 	"github.com/v2pro/wallaby/core/codec"
 )
 
-// Overall Proxy Sequence
-// ServerConn => RoutingMode => ServerRequest => ServiceKinds => ServiceInstance => RoutingDecision
-// there are three modes
-// per connection routing: RoutingDecision is determined by ServerConn
-//		this mode is most generic, can handle any kind of tcp stream without knowing the protocol
-// per stream routing: RoutingDecision is determined by first request packet in the connection
-// 		or stream (when protocol is multiplex, there might be multiple streams on one connection)
-//		this mode do not need to do stateful protocol handling, and can route with more information
-// per packet routing (a.k.a RPC mode): RoutingDecision might be different for different request packet
-//		this mode is most powerful and most costly, need complete implementation of protocol
-//		including encoding/decoding/stateful action sequences
-
 // accept ServerConn from inbound
 // the LocalAddr and RemoteAddr is from tcp connection
 // src service name might be bundled with the proxy installation (serving only one service)
@@ -46,6 +34,13 @@ type ServerRequest struct {
 	ServerConn             *ServerConn
 	ConnForwardingDecision *ConnForwardingDecision
 	Packet                 codec.Packet
+}
+
+type ClientRequest struct {
+	ServerRequest *ServerRequest
+	SrcServiceName string
+	SrcServiceCluster string
+	DstServiceName string
 }
 
 // ServerRequest => ServiceKinds decision point
