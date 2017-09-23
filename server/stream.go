@@ -1,18 +1,18 @@
 package server
 
 import (
-	"net"
-	"github.com/v2pro/wallaby/countlog"
-	"github.com/v2pro/wallaby/core"
 	"github.com/v2pro/wallaby/client"
-	"io"
-	"time"
+	"github.com/v2pro/wallaby/core"
 	"github.com/v2pro/wallaby/core/codec"
+	"github.com/v2pro/wallaby/countlog"
+	"io"
+	"net"
+	"time"
 )
 
 type stream struct {
-	svr       *net.TCPConn
-	svrCodec  codec.Codec
+	svr        *net.TCPConn
+	svrCodec   codec.Codec
 	svrCapture *codec.Capture
 	cltCapture *codec.Capture
 }
@@ -22,8 +22,8 @@ func newStream(svr *net.TCPConn, svrCodec codec.Codec) *stream {
 	svrCapture.SetReader(svr)
 	cltCapture := &codec.Capture{}
 	return &stream{
-		svr:       svr,
-		svrCodec:  svrCodec,
+		svr:        svr,
+		svrCodec:   svrCodec,
 		svrCapture: svrCapture,
 		cltCapture: cltCapture,
 	}
@@ -48,10 +48,10 @@ func (srm *stream) roundtrip() bool {
 	if req == nil {
 		return false
 	}
-	target := core.RouteServerRequest(&core.ServerRequest{
+	target := core.Route(&core.ServerRequest{
 		Packet: req,
 	})
-	clt, err := client.Get(target)
+	clt, err := client.Get(target.ServiceInstance)
 	if err != nil {
 		countlog.Warn("event!server.failed to connect client", "err", err)
 		return false
@@ -64,7 +64,7 @@ func (srm *stream) roundtrip() bool {
 	// the "old" client will be discarded because read/write incurred error which marked it as invalid
 	// this way we can expire invalid client and re-fill the pool with new one
 	countlog.Debug("event!server.re-connect client")
-	clt, err = client.GetNew(target)
+	clt, err = client.GetNew(&target.ServiceInstance.ServiceKind)
 	if err != nil {
 		countlog.Warn("event!server.failed to re-connect client", "err", err)
 		return false

@@ -5,16 +5,16 @@ import (
 	"sync"
 )
 
-var pools = map[core.Service]chan *pooledClient{}
+var pools = map[string]chan *pooledClient{}
 var poolsMutex = &sync.Mutex{}
 
-func getPool(qualifier core.Service) chan *pooledClient {
+func getPool(qualifier *core.ServiceKind) chan *pooledClient {
 	poolsMutex.Lock()
 	defer poolsMutex.Unlock()
-	pool := pools[qualifier]
+	pool := pools[qualifier.String()]
 	if pool == nil {
 		pool = make(chan *pooledClient, 8)
-		pools[qualifier] = pool
+		pools[qualifier.String()] = pool
 	}
 	return pool
 }

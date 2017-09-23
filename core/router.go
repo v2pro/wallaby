@@ -7,7 +7,7 @@ func HowToRoute(serverConn *ServerConn) RoutingMode {
 func Route(serverRequest *ServerRequest) *RoutingDecision {
 	return &RoutingDecision{
 		ServiceInstance: &ServiceInstance{
-			Service: Service{
+			ServiceKind: ServiceKind{
 				ServiceName:    "default",
 				ServiceCluster: "localhost",
 				ServiceVersion: "default",
