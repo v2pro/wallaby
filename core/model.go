@@ -25,12 +25,8 @@ import (
 // dst service name might be inferred from RemoteAddr or LocalAddr
 
 type ServerConn struct {
-	SrcServiceName string
-	SrcServiceCluster string
-	DstServiceName string
 	LocalAddr *net.TCPAddr
 	RemoteAddr *net.TCPAddr
-	ServerProtocol string
 }
 
 // ServerConn => RoutingMode decision point
@@ -42,16 +38,18 @@ const PerConnection RoutingMode = "PerConnection"
 const PerStream RoutingMode = "PerStream"
 const PerPacket RoutingMode = "PerPacket"
 
+type ConnForwardingDecision struct {
+	RoutingMode RoutingMode
+	ServerProtocol string
+}
+
 // read ServerRequest from inbound
 // Packet might be nil if routing mode is per connection
 // src/dst service is extracted from packet, might be empty
 
 type ServerRequest struct {
 	ServerConn *ServerConn
-	RoutingMode RoutingMode
-	SrcServiceName string
-	SrcServiceCluster string
-	DstServiceName string
+	ConnForwardingDecision *ConnForwardingDecision
 	Packet codec.Packet
 }
 
