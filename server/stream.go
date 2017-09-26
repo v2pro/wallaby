@@ -49,7 +49,7 @@ func (srm *stream) roundtrip() bool {
 	if req == nil {
 		return false
 	}
-	target := core.Route(&core.ServerRequest{
+	target := core.HowToRoute(&core.ServerRequest{
 		Packet: req,
 	})
 	clt, err := client.Get(target.ServiceInstance)

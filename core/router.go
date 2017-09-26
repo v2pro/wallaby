@@ -19,11 +19,14 @@ func FindServiceAddr(qualifier *ServiceKind) (string, error) {
 	return "", fmt.Errorf("FindServiceAddr fail to find %s", qualifier)
 }
 
-func HowToRoute(serverConn *ServerConn) RoutingMode {
-	return ""
+func HowToForward(serverConn *ServerConn) *ConnForwardingDecision {
+	return &ConnForwardingDecision{
+		RoutingMode: PerPacket,
+		ServerProtocol: "HTTP",
+	}
 }
 
-func Route(serverRequest *ServerRequest) *RoutingDecision {
+func HowToRoute(serverRequest *ServerRequest) *RoutingDecision {
 	return &RoutingDecision{
 		ServiceInstance: &ServiceInstance{
 			ServiceKind: serviceNodeList[0],
