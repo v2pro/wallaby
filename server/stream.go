@@ -6,6 +6,7 @@ import (
 	"github.com/v2pro/wallaby/core"
 	"github.com/v2pro/wallaby/core/codec"
 	"github.com/v2pro/wallaby/countlog"
+	"github.com/v2pro/wallaby/routing"
 	"io"
 	"net"
 	"time"
@@ -49,9 +50,14 @@ func (srm *stream) roundtrip() bool {
 	if req == nil {
 		return false
 	}
-	target := core.HowToRoute(&core.ServerRequest{
+	srs := &routing.SimpleRoutingStrategy{}
+	target, err := core.HowToRoute(&core.ServerRequest{
 		Packet: req,
-	})
+	}, srs)
+	if err != nil {
+		countlog.Warn("event!server.failed to connect client", "err", err)
+		return false
+	}
 	clt, err := client.Get(target.ServiceInstance)
 	if err != nil {
 		countlog.Warn("event!server.failed to connect client", "err", err)
@@ -65,7 +71,7 @@ func (srm *stream) roundtrip() bool {
 	// the "old" client will be discarded because read/write incurred error which marked it as invalid
 	// this way we can expire invalid client and re-fill the pool with new one
 	countlog.Debug("event!server.re-connect client")
-	clt, err = client.GetNew(target.ServiceInstance.ServiceKind)
+	clt, err = client.GetNew(target.ServiceInstance)
 	if err != nil {
 		countlog.Warn("event!server.failed to re-connect client", "err", err)
 		return false

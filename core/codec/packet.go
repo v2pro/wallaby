@@ -1,11 +1,12 @@
 package codec
 
 import (
+	"github.com/v2pro/wallaby/core/coretype"
 	"io"
 )
 
-var Codecs = map[string]Codec{
-	"HTTP": &httpCodec{},
+var Codecs = map[coretype.Protocol]Codec{
+	coretype.Http: &httpCodec{},
 }
 
 type Packet interface {

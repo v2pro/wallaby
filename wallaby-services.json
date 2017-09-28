@@ -1,0 +1,16 @@
+[
+    {
+        "service": "coupon",
+        "cluster": "localhost",
+        "version": "default",
+        "address": "127.0.0.1:8005",
+        "protocol": "http"
+    },
+    {
+        "service": "coupon",
+        "cluster": "localhost",
+        "version": "new",
+        "address": "127.0.0.1:8005",
+        "protocol": "http"
+    }
+]
