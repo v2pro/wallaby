@@ -85,7 +85,7 @@ func InitRouteTable() bool {
 		}
 		defaultRouteTable[serviceNode.String()] = node.Address
 	}
-	if len(nodeList) == 0 {
+	if len(defaultRouteTable) == 0 {
 		countlog.Error("no services found")
 		return false
 	}
