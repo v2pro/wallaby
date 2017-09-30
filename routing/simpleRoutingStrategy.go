@@ -4,8 +4,9 @@ import (
 	"github.com/v2pro/wallaby/core"
 	"github.com/v2pro/wallaby/core/coretype"
 
+	"github.com/v2pro/wallaby/countlog"
+	"github.com/v2pro/wallaby/datacenter"
 	"net"
-	"strconv"
 	"time"
 )
 
@@ -36,19 +37,20 @@ func (srs SimpleRoutingStrategy) GetServiceKind(cr *core.ClientRequest) *core.Se
 		node := GetCurrentServiceNode()
 		sk.Cluster = node.Cluster
 	}
-	// we can choose the version based on deviceID/ip
-	//deviceID := cr.ServerRequest.Packet.GetFeature("device-id")
-	ipFrom := cr.ServerRequest.Packet.GetFeature("x-forwarded-for")
-	digit := "0"
-	if len(ipFrom) > 2 {
-		digit = ipFrom[len(ipFrom)-2:]
-	}
-	percent, _ := strconv.Atoi(digit)
-	if percent >= 50 {
-		sk.Version = GetNextVersion()
+	// we can choose the version based on deviceID/ip/Cityid/USN(module identifier)/...
+	routingSetting := datacenter.GetRoutingSetting()
+	if routingSetting.IsValid() {
+		// for example, x-forwarded-for regex [12345]$, Cityid >= 10000, etc.
+		hashVal := cr.ServerRequest.Packet.GetFeature(routingSetting.Hashkey)
+		if routingSetting.RunRoutingRule(hashVal) {
+			sk.Version = GetNextVersion()
+		} else {
+			sk.Version = GetCurrentVersion()
+		}
 	} else {
 		sk.Version = GetCurrentVersion()
 	}
+	countlog.Infof("event!select-version: %s", sk.Version)
 	return sk
 }
 
