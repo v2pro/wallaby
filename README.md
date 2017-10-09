@@ -33,8 +33,20 @@ handle the request by chosen service instance.
 
 # User Guide
 
-## 1 get dependencies (require dep)
+## 1 get dependencies (require glide)
 
 ```bash
-dep ensure
+glide install
+```
+
+## 2 build wallaby proxy
+
+```bash
+go install github.com/v2pro/wallaby/cmd/proxy
+```
+
+## 3. run
+
+```bash
+proxy
 ```

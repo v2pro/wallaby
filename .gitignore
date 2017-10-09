@@ -2,3 +2,4 @@
 /demos
 vendor/
 *.iml
+.DS_Store
