@@ -1,0 +1,5 @@
+{
+    "hashkey": "x-forwarded-for",
+    "operator": "random",
+    "value": "50"
+}

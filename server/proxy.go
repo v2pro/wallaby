@@ -2,10 +2,10 @@ package server
 
 import (
 	"github.com/v2pro/wallaby/config"
+	"github.com/v2pro/wallaby/core"
 	"github.com/v2pro/wallaby/core/codec"
 	"github.com/v2pro/plz/countlog"
 	"net"
-	"github.com/v2pro/wallaby/core"
 )
 
 func Start() {
@@ -23,7 +23,7 @@ func Start() {
 			return
 		}
 		serverConn := &core.ServerConn{
-			LocalAddr: conn.LocalAddr().(*net.TCPAddr),
+			LocalAddr:  conn.LocalAddr().(*net.TCPAddr),
 			RemoteAddr: conn.RemoteAddr().(*net.TCPAddr),
 		}
 		connForwardingDecision := core.HowToForward(serverConn)
@@ -32,7 +32,7 @@ func Start() {
 			decoder := codec.Codecs[connForwardingDecision.ServerProtocol]
 			go newStream(conn.(*net.TCPConn), decoder).proxy()
 		default:
-			panic("not supported yet")
+			panic("RoutingMode not supported yet: " + connForwardingDecision.RoutingMode)
 		}
 	}
 }

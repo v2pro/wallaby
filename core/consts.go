@@ -1,17 +1,13 @@
 package core
 
-type ProtocolType string
-type RoutingMode string
+type RoutingModeType string
 type Verdict int
 
 const (
-	Http ProtocolType = "http"
-	Thrift ProtocolType = "thrift"
-	Rpc ProtocolType = "rpc"
 
-	PerConnection RoutingMode = "PerConnection"
-	PerStream RoutingMode = "PerStream"
-	PerPacket RoutingMode = "PerPacket"
+	PerConnection RoutingModeType = "PerConnection"
+	PerStream RoutingModeType = "PerStream"
+	PerPacket RoutingModeType = "PerPacket"
 
 	Accept Verdict = 1
 	Reject Verdict = 2

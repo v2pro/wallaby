@@ -87,31 +87,28 @@ func Get(target *core.ServiceInstance) (Client, error) {
 			"conn", client.TCPConn.LocalAddr())
 		return client, nil
 	default:
-		return GetNew(target.ServiceKind)
+		return GetNew(target)
 	}
 }
 
-func GetNew(qualifier *core.ServiceKind) (Client, error) {
-	pool := getPool(qualifier)
-	return connect(pool, qualifier)
+func GetNew(target *core.ServiceInstance) (Client, error) {
+	pool := getPool(target.ServiceKind)
+	return connect(pool, target)
 }
 
-func connect(pool chan *pooledClient, qualifier *core.ServiceKind) (Client, error) {
-	addr, err := core.FindServiceAddr(qualifier)
-	if err != nil {
-		return nil, err
-	}
+func connect(pool chan *pooledClient, target *core.ServiceInstance) (Client, error) {
+	addr := target.RemoteAddr.String()
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 	countlog.Trace("event!client.connect",
-		"qualifier", qualifier.String(),
+		"qualifier", target.ServiceKind.String(),
 		"conn", conn.LocalAddr())
 	clt := &pooledClient{
 		TCPConn: conn.(*net.TCPConn),
 		pool:    pool,
-		codec:   codec.Codecs["HTTP"],
+		codec:   codec.Codecs[target.ServiceKind.Protocol],
 	}
 	clt.reader = bufio.NewReaderSize(clt, 2048)
 	return clt, nil
