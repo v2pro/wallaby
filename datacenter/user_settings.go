@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/v2pro/wallaby/countlog"
+	"github.com/v2pro/plz/countlog"
 	"github.com/v2pro/wallaby/util/infra"
 	"regexp"
 	"strconv"

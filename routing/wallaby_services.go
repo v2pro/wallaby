@@ -11,7 +11,7 @@ import (
 
 	"github.com/v2pro/wallaby/core"
 	"github.com/v2pro/wallaby/core/coretype"
-	"github.com/v2pro/wallaby/countlog"
+	"github.com/v2pro/plz/countlog"
 )
 
 var (

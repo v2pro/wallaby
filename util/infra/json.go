@@ -2,7 +2,8 @@ package infra
 
 import (
 	"encoding/json"
-	"github.com/v2pro/wallaby/countlog"
+	"github.com/v2pro/plz/countlog"
+	"fmt"
 )
 
 func JsonEncode(obj interface{}) string {
@@ -28,7 +29,7 @@ func JsonDecode(encodeStr string) map[string]interface{} {
 	case string, int, int64, float64:
 		return nil
 	default:
-		countlog.Errorf("JsonDecode(%s) return %T(%v), expect map[string]interface{}", encodeStr, ret, ret)
+		countlog.Error(fmt.Sprintf("JsonDecode(%s) return %T(%v), expect map[string]interface{}", encodeStr, ret, ret))
 		return nil
 	}
 }
@@ -45,7 +46,7 @@ func JsonDecodeArr(encodeStr string) []interface{} {
 	case string, int, int64, float64:
 		return nil
 	default:
-		countlog.Errorf("JsonDecode(%s) return %T(%v), expect []interface{}", encodeStr, ret, ret)
+		countlog.Error(fmt.Sprintf("JsonDecode(%s) return %T(%v), expect []interface{}", encodeStr, ret, ret))
 		return nil
 	}
 }
