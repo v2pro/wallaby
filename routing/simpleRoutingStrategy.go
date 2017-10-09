@@ -50,7 +50,7 @@ func (srs SimpleRoutingStrategy) GetServiceKind(cr *core.ClientRequest) *core.Se
 	} else {
 		sk.Version = GetCurrentVersion()
 	}
-	countlog.Infof("event!select-version: %s", sk.Version)
+	countlog.Info("event!select-version", "version", sk.Version)
 	return sk
 }
 
