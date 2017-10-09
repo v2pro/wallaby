@@ -63,17 +63,17 @@ func init() {
 func InitRouteTable() bool {
 	namingFile, err := os.Open(GetRoot() + "/wallaby-services.json")
 	if err != nil {
-		countlog.Errorf("no wallaby-services.json found: %s", err.Error())
+		countlog.Error("event!no wallaby-services.json found", "err", err)
 		return false
 	}
 
 	jsonParser := json.NewDecoder(namingFile)
 	if err = jsonParser.Decode(&nodeList); err != nil {
-		countlog.Errorf("fail to parse config file: %s", err.Error())
+		countlog.Error("event!fail to parse config file", "err", err)
 		return false
 	}
 	if len(nodeList) == 0 {
-		countlog.Error("no services found")
+		countlog.Error("event!no services found")
 		return false
 	}
 

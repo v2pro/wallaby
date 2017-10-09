@@ -60,17 +60,17 @@ func init() {
 func ReadUserSetting() bool {
 	settingFile, err := os.Open(GetRoot() + "/user-settings.json")
 	if err != nil {
-		countlog.Errorf("no user-settings.json found: %s", err.Error())
+		countlog.Error("event!no user-settings.json found", "err", err)
 		return false
 	}
 
 	jsonParser := json.NewDecoder(settingFile)
 	if err = jsonParser.Decode(routingSetting); err != nil {
-		countlog.Errorf("fail to parse user-settings file: %s", err.Error())
+		countlog.Error("event!fail to parse user-settings file", "err", err)
 		return false
 	}
 	if !routingSetting.IsValid() {
-		countlog.Errorf("user-settings is invalid: %s", infra.JsonEncode(routingSetting))
+		countlog.Error("event!user-settings is invalid", "routingSetting", infra.JsonEncode(routingSetting))
 		return false
 	}
 	return true
@@ -156,7 +156,7 @@ func (rs RoutingSetting) RunRoutingRule(hashVal string) bool {
 	case OperatorRandom:
 		hashInt, err := strconv.Atoi(rs.Value)
 		if err != nil {
-			countlog.Errorf("fail to parse RoutingSetting.Value to int: %s", err)
+			countlog.Error("event!fail to parse RoutingSetting.Value to int", "err", err)
 			return false
 		}
 		return infra.RandomPercent() >= hashInt
