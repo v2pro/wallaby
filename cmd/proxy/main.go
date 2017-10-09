@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/v2pro/wallaby/server"
 	"runtime"
-	"github.com/v2pro/wallaby/countlog"
+	"github.com/v2pro/plz/countlog"
 )
 
 func main() {

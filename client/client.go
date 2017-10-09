@@ -5,7 +5,7 @@ import (
 	"github.com/v2pro/wallaby/core"
 	"net"
 	"go.uber.org/atomic"
-	"github.com/v2pro/wallaby/countlog"
+	"github.com/v2pro/plz/countlog"
 	"github.com/v2pro/wallaby/core/codec"
 	"bufio"
 )
