@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// AssertNotEqual test not equal or fail
 func AssertNotEqual(t *testing.T, a interface{}, b interface{}, message string) {
 	if a != b {
 		return
@@ -13,6 +14,7 @@ func AssertNotEqual(t *testing.T, a interface{}, b interface{}, message string) 
 	t.Fatal(message)
 }
 
+// AssertEqual test equal or fail
 func AssertEqual(t *testing.T, a interface{}, b interface{}, message string) {
 	if a == b {
 		return

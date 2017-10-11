@@ -1,13 +1,14 @@
 package server
 
 import (
+	"github.com/v2pro/plz/countlog"
 	"github.com/v2pro/wallaby/config"
 	"github.com/v2pro/wallaby/core"
 	"github.com/v2pro/wallaby/core/codec"
-	"github.com/v2pro/plz/countlog"
 	"net"
 )
 
+// Start runs the main wallaby server, handle incoming requests and dispatch to clients
 func Start() {
 	addr := config.ProxyAddr
 	listener, err := net.Listen("tcp", addr)

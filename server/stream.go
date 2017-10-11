@@ -1,11 +1,11 @@
 package server
 
 import (
+	"github.com/v2pro/plz/countlog"
 	"github.com/v2pro/wallaby/client"
 	"github.com/v2pro/wallaby/config"
 	"github.com/v2pro/wallaby/core"
 	"github.com/v2pro/wallaby/core/codec"
-	"github.com/v2pro/plz/countlog"
 	"github.com/v2pro/wallaby/routing"
 	"io"
 	"net"
@@ -21,7 +21,11 @@ type stream struct {
 
 func newStream(svr *net.TCPConn, svrCodec codec.Codec) *stream {
 	svrCapture := &codec.Capture{}
-	svrCapture.SetReader(svr)
+	err := svrCapture.SetReader(svr)
+	if err != nil {
+		countlog.Error("event!server.failed to set reader", "err", err)
+		return nil
+	}
 	cltCapture := &codec.Capture{}
 	return &stream{
 		svr:        svr,
@@ -36,10 +40,16 @@ func (srm *stream) proxy() {
 		recovered := recover()
 		if recovered != nil {
 			countlog.Fatal("event!server.panic", "err", recovered,
-				"stacktrace", countlog.ProvideStacktrace)
+				"stacktrace", countlog.ProvideStacktrace())
 		}
-		srm.svr.Close()
+		err := srm.svr.Close()
+		if err != nil {
+			countlog.Fatal("event!server.fail to close srm.svr", "err", err)
+		}
 	}()
+	if srm == nil {
+		return
+	}
 	for srm.roundtrip() {
 
 	}
@@ -79,24 +89,32 @@ func (srm *stream) roundtrip() bool {
 	return srm.handleRequest(clt, req)
 }
 
+// readRequest read and decode the request from svrCapture
 func (srm *stream) readRequest() codec.Packet {
-	for {
-		srm.svr.SetReadDeadline(time.Now().Add(time.Duration(int(time.Second) * config.ClientReadTimeout)))
-		req, err := srm.svrCodec.DecodeRequest(srm.svrCapture)
-		if err == io.EOF {
-			countlog.Trace("event!server.inbound conn closed")
-			return nil
-		}
-		if err != nil {
-			countlog.Warn("event!server.failed to read request", "err", err)
-			return nil
-		}
-		return req
+	err := srm.svr.SetReadDeadline(time.Now().Add(time.Duration(int(time.Second) * config.ClientReadTimeout)))
+	if err != nil {
+		countlog.Error("event!server.failed to set deadline for stream", "err", err)
+		return nil
 	}
+	req, err := srm.svrCodec.DecodeRequest(srm.svrCapture)
+	if err == io.EOF {
+		countlog.Trace("event!server.inbound conn closed")
+		return nil
+	}
+	if err != nil {
+		countlog.Warn("event!server.failed to read request", "err", err)
+		return nil
+	}
+	return req
 }
 
+// handleRequest get response from client and copy to server connection
 func (srm *stream) handleRequest(clt client.Client, req codec.Packet) bool {
-	defer clt.Close()
+	defer func() {
+		if err := clt.Close(); err != nil {
+			countlog.Warn("event!server.failed to close client", "err", err)
+		}
+	}()
 	resp, err := clt.Handle(req, srm.cltCapture)
 	if err != nil {
 		return false

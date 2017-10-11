@@ -3,15 +3,14 @@ package routing
 import (
 	"encoding/json"
 	"fmt"
-	"net"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
 
+	"github.com/v2pro/plz/countlog"
 	"github.com/v2pro/wallaby/core"
 	"github.com/v2pro/wallaby/core/coretype"
-	"github.com/v2pro/plz/countlog"
 )
 
 var (
@@ -19,49 +18,42 @@ var (
 	nodeList          = []*ServiceNode{}
 )
 
-type WallabyServiceDiscover struct {
-}
-
-func (w WallabyServiceDiscover) FindServiceKindAddr(sk *core.ServiceKind) (*net.TCPAddr, error) {
-	addr, err := FindServiceKindAddr(sk)
-	if err != nil {
-		return nil, err
-	}
-	return net.ResolveTCPAddr("tcp", addr)
-}
-
+// GetCurrentVersion get the version string of current running service
 func GetCurrentVersion() string {
 	return nodeList[0].Version
 }
 
+// GetCurrentServiceNode get the current running service info
 func GetCurrentServiceNode() *ServiceNode {
 	return nodeList[0]
 }
 
+// GetNextVersion get the new version string of service
 func GetNextVersion() string {
 	if len(nodeList) > 0 {
 		return nodeList[1].Version
-	} else {
-		return ""
 	}
+	return ""
 }
 
+// FindServiceKindAddr return the ip+port string for the given ServiceKind
 func FindServiceKindAddr(sk *core.ServiceKind) (string, error) {
 	//addr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:8005")
-	if addr, ok := defaultRouteTable[sk.String()]; ok {
+	if addr, ok := defaultRouteTable[sk.Qualifier()]; ok {
 		return addr, nil
 	}
 	return "", fmt.Errorf("FindServiceAddr fail to find %s", sk)
 }
 
 func init() {
-	if !InitRouteTable() {
-		panic("InitRouteTable fail")
+	if !GetWallabyServices() {
+		panic("GetWallabyServices fail")
 	}
 }
 
-func InitRouteTable() bool {
-	namingFile, err := os.Open(GetRoot() + "/wallaby-services.json")
+// GetWallabyServices load values from wallaby-services.json
+func GetWallabyServices() bool {
+	namingFile, err := os.Open(getRoot() + "/wallaby-services.json")
 	if err != nil {
 		countlog.Error("event!no wallaby-services.json found", "err", err)
 		return false
@@ -78,12 +70,12 @@ func InitRouteTable() bool {
 	}
 
 	for _, node := range nodeList {
-		serviceNode, err := ResolveService(node)
+		serviceNode, err := resolveService(node)
 		if err != nil {
 			countlog.Error(err.Error())
 			continue
 		}
-		defaultRouteTable[serviceNode.String()] = node.Address
+		defaultRouteTable[serviceNode.Qualifier()] = node.Address
 	}
 	if len(defaultRouteTable) == 0 {
 		countlog.Error("no services found")
@@ -92,7 +84,7 @@ func InitRouteTable() bool {
 	return true
 }
 
-func GetRoot() string {
+func getRoot() string {
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
 		panic("No caller information")
@@ -105,6 +97,7 @@ func GetRoot() string {
 	return root
 }
 
+// ServiceNode is the json struct for wallaby-services.json items
 type ServiceNode struct {
 	Service  string `json:"service"`
 	Cluster  string `json:"cluster"`
@@ -113,7 +106,7 @@ type ServiceNode struct {
 	Protocol string `json:"protocol"`
 }
 
-func ResolveService(node *ServiceNode) (*core.ServiceKind, error) {
+func resolveService(node *ServiceNode) (*core.ServiceKind, error) {
 	s := &core.ServiceKind{}
 	s.Name = node.Service
 	s.Cluster = node.Cluster

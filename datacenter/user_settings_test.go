@@ -1,7 +1,6 @@
 package datacenter
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -19,11 +18,11 @@ func TestRunRoutingRule(t *testing.T) {
 	assert.False(t, NewRoutingSetting("x-forwarded-for", "regex", "[12345]$").RunRoutingRule(""))
 	assert.False(t, NewRoutingSetting("x-forwarded-for", "random", "100").RunRoutingRule(""))
 	assert.True(t, NewRoutingSetting("x-forwarded-for", "random", "0").RunRoutingRule(""))
-	result := NewRoutingSetting("x-forwarded-for", "random", "50").RunRoutingRule("")
-	if result == true {
-		fmt.Println("random true")
-	} else {
-		fmt.Println("random false")
+	resultMap := make(map[bool]int)
+	for i := 0; i < 100; i++ {
+		result := NewRoutingSetting("x-forwarded-for", "random", "50").RunRoutingRule("")
+		resultMap[result]++
 	}
-	assert.True(t, result == true || result == false)
+	assert.True(t, resultMap[true] > 0)
+	assert.True(t, resultMap[false] > 0)
 }

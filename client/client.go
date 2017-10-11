@@ -1,16 +1,19 @@
 package client
 
 import (
-	"io"
-	"github.com/v2pro/wallaby/core"
-	"net"
-	"go.uber.org/atomic"
-	"github.com/v2pro/plz/countlog"
-	"github.com/v2pro/wallaby/core/codec"
 	"bufio"
+	"github.com/v2pro/plz/countlog"
+	"github.com/v2pro/wallaby/core"
+	"github.com/v2pro/wallaby/core/codec"
+	"go.uber.org/atomic"
+	"io"
+	"net"
 )
 
+// Client interface
 type Client interface {
+
+	// Handle req, srm.cltCapture
 	Handle(req codec.Packet, capture *codec.Capture) (codec.Packet, error)
 	io.Closer
 }
@@ -23,6 +26,7 @@ type pooledClient struct {
 	reader    *bufio.Reader
 }
 
+// Handle copies request to client connection, get the response from client and converts to packet and return
 func (clt *pooledClient) Handle(req codec.Packet, capture *codec.Capture) (codec.Packet, error) {
 	err := clt.codec.EncodeRequest(req, clt)
 	if err != nil {
@@ -78,12 +82,13 @@ func (clt *pooledClient) Close() error {
 	}
 }
 
+// Get fetch a Client connection
 func Get(target *core.ServiceInstance) (Client, error) {
-	pool := getPool(target.ServiceKind)
+	pool := getPool(target.Kind)
 	select {
 	case client := <-pool:
 		countlog.Trace("event!client.reuse",
-			"qualifier", target.ServiceKind.String(),
+			"qualifier", target.Kind.Qualifier(),
 			"conn", client.TCPConn.LocalAddr())
 		return client, nil
 	default:
@@ -91,11 +96,13 @@ func Get(target *core.ServiceInstance) (Client, error) {
 	}
 }
 
+// GetNew create a new Client connection
 func GetNew(target *core.ServiceInstance) (Client, error) {
-	pool := getPool(target.ServiceKind)
+	pool := getPool(target.Kind)
 	return connect(pool, target)
 }
 
+// connect establish a connection to a client host address and return the Client object
 func connect(pool chan *pooledClient, target *core.ServiceInstance) (Client, error) {
 	addr := target.RemoteAddr.String()
 	conn, err := net.Dial("tcp", addr)
@@ -103,12 +110,12 @@ func connect(pool chan *pooledClient, target *core.ServiceInstance) (Client, err
 		return nil, err
 	}
 	countlog.Trace("event!client.connect",
-		"qualifier", target.ServiceKind.String(),
+		"qualifier", target.Kind.Qualifier(),
 		"conn", conn.LocalAddr())
 	clt := &pooledClient{
 		TCPConn: conn.(*net.TCPConn),
 		pool:    pool,
-		codec:   codec.Codecs[target.ServiceKind.Protocol],
+		codec:   codec.Codecs[target.Kind.Protocol],
 	}
 	clt.reader = bufio.NewReaderSize(clt, 2048)
 	return clt, nil

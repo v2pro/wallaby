@@ -31,6 +31,7 @@ func (resp *httpResponsePacket) GetFeature(key string) string {
 type httpCodec struct {
 }
 
+// DecodeRequest reads the http request from capture, and returns a Packet obj
 func (codec *httpCodec) DecodeRequest(capture *Capture) (Packet, error) {
 	httpReq, err := http.ReadRequest(capture.Reader())
 	if err != nil {
@@ -47,6 +48,7 @@ func (codec *httpCodec) DecodeRequest(capture *Capture) (Packet, error) {
 	}, nil
 }
 
+// DecodeResponse reads from capture(http body), and returns a Packet obj
 func (codec *httpCodec) DecodeResponse(capture *Capture) (Packet, error) {
 	httpResp, err := http.ReadResponse(capture.Reader(), nil)
 	if err != nil {
@@ -63,6 +65,7 @@ func (codec *httpCodec) DecodeResponse(capture *Capture) (Packet, error) {
 	}, nil
 }
 
+// EncodeRequest encodes the request and writes to destination(writer)
 func (codec *httpCodec) EncodeRequest(request Packet, writer io.Writer) error {
 	switch typed := request.(type) {
 	case *httpRequestPacket:
@@ -73,6 +76,7 @@ func (codec *httpCodec) EncodeRequest(request Packet, writer io.Writer) error {
 	}
 }
 
+// EncodeResponse encodes the response and writes to destination(writer)
 func (codec *httpCodec) EncodeResponse(response Packet, writer io.Writer) error {
 	switch typed := response.(type) {
 	case *httpResponsePacket:

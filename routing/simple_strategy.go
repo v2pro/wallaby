@@ -14,6 +14,7 @@ import (
 type SimpleRoutingStrategy struct {
 }
 
+// LocateClientService simply get service from wallaby_services.json
 func (srs SimpleRoutingStrategy) LocateClientService(sr *core.ServerRequest) (*core.ClientRequest, error) {
 	clientService := &core.ClientRequest{}
 	clientService.ServerRequest = sr
@@ -27,9 +28,10 @@ func (srs SimpleRoutingStrategy) LocateClientService(sr *core.ServerRequest) (*c
 	return clientService, nil
 }
 
+// GetServiceKind decides the version of service for the given request and return a ServiceKind of that version
 func (srs SimpleRoutingStrategy) GetServiceKind(cr *core.ClientRequest) *core.ServiceKind {
 	sk := &core.ServiceKind{}
-	sk.Protocol = coretype.Http
+	sk.Protocol = coretype.HTTP
 	sk.Name = cr.DstServiceName
 	// try the same cluster as the upstream first
 	sk.Cluster = cr.SrcServiceCluster
@@ -54,6 +56,7 @@ func (srs SimpleRoutingStrategy) GetServiceKind(cr *core.ClientRequest) *core.Se
 	return sk
 }
 
+// SelectOneInst just read the ip address from  wallaby_services.json and return ServiceInstance
 func (srs SimpleRoutingStrategy) SelectOneInst(sk *core.ServiceKind) (*core.ServiceInstance, error) {
 	ipString, err := FindServiceKindAddr(sk)
 	if err != nil {
@@ -64,12 +67,13 @@ func (srs SimpleRoutingStrategy) SelectOneInst(sk *core.ServiceKind) (*core.Serv
 		return nil, err
 	}
 	inst := &core.ServiceInstance{
-		ServiceKind: sk,
+		Kind: sk,
 		RemoteAddr:  addr,
 	}
 	return inst, nil
 }
 
+// GetRoutingDecision return the default RoutingDecision
 func (srs SimpleRoutingStrategy) GetRoutingDecision(inst *core.ServiceInstance) *core.RoutingDecision {
 	return &core.RoutingDecision{
 		ServiceInstance: inst,

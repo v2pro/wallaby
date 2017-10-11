@@ -14,13 +14,14 @@ type ServerConn struct {
 	RemoteAddr *net.TCPAddr
 }
 
-// ServerConn => ConnForwardingDecision: when a tcp connection is established, how to forward the connection (routing mode/protocol) is determined
+// ConnForwardingDecision ServerConn => ConnForwardingDecision: when a tcp connection is established,
+// how to forward the connection (routing mode/protocol) is determined
 type ConnForwardingDecision struct {
 	RoutingMode    RoutingModeType
 	ServerProtocol coretype.Protocol
 }
 
-// ConnForwardingDecision => ServerRequest: parse request arrived server
+// ServerRequest ConnForwardingDecision => ServerRequest: parse request arrived server
 // Packet might be nil if routing mode is per connection
 type ServerRequest struct {
 	ServerConn             *ServerConn
@@ -28,7 +29,7 @@ type ServerRequest struct {
 	Packet                 codec.Packet
 }
 
-// ServerRequest => ClientRequest: by parsing the request, we know what is the target service
+// ClientRequest ServerRequest => ClientRequest: by parsing the request, we know what is the target service
 type ClientRequest struct {
 	ServerRequest     *ServerRequest
 	SrcServiceName    string
@@ -36,7 +37,7 @@ type ClientRequest struct {
 	DstServiceName    string
 }
 
-// ClientRequest => ServiceKinds: one service have many clusters, filter out feasible clusters by cluster routing table.
+// ServiceKind ClientRequest => ServiceKinds: one service have many clusters, filter out feasible clusters by cluster routing table.
 // one ServerRequest might have many ServiceKinds as viable options
 type ServiceKind struct {
 	// what service actually is, determined by its source code
@@ -52,24 +53,25 @@ type ServiceKind struct {
 	Protocol coretype.Protocol
 }
 
-// ServiceKinds => ServiceInstance: choose one most optimal service cluster from many clusters,
+// Qualifier to qualifier string
+func (sk ServiceKind) Qualifier() string {
+	return sk.Name + "-" + sk.Cluster + "@" + sk.Version
+}
+
+// ServiceInstance ServiceKinds => ServiceInstance: choose one most optimal service cluster from many clusters,
 // choose one most optimal service instance from that cluster.
 // there might be many instances for one ServiceKind, as long as the four values are the same
 // the instances are interchangeable (no big performance difference, same config, same geo-location)
 type ServiceInstance struct {
-	ServiceKind *ServiceKind
-	RemoteAddr  *net.TCPAddr
+	Kind       *ServiceKind
+	RemoteAddr *net.TCPAddr
 }
 
-// ServiceInstance => RoutingDecision: given the service status, should we accept/reject/wait the request.
+// RoutingDecision ServiceInstance => RoutingDecision: given the service status, should we accept/reject/wait the request.
 // If accept, handle the request by chosen service instance.
 type RoutingDecision struct {
 	ServiceInstance *ServiceInstance
 	Verdict         Verdict
 	RejectResponse  interface{}
 	WaitDuration    time.Duration
-}
-
-func (srv *ServiceKind) String() string {
-	return srv.Name + "-" + srv.Cluster + "@" + srv.Version
 }

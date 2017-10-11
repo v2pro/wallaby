@@ -18,9 +18,10 @@ const (
 )
 
 var (
-	seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+	seed = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
+// RandomString returns a random string
 // length: str length
 // charsets:
 //   - uppercase，
@@ -37,11 +38,12 @@ func RandomString(length uint8, charsets ...string) string {
 	}
 	b := make([]byte, length)
 	for i := range b {
-		b[i] = charset[seededRand.Intn(len(charset))]
+		b[i] = charset[seed.Intn(len(charset))]
 	}
 	return string(b)
 }
 
+// RandomPercent get random value from 0 ~ 99
 func RandomPercent() int {
-	return seededRand.Intn(100)
+	return seed.Intn(100)
 }
