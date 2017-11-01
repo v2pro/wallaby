@@ -26,6 +26,7 @@ type (
 		Address  string            `json:"address"` //`comment host:port`
 		Service  string            `json:"name"`    //`comment service name`
 		Version  string            `json:"version"`
+		PWD      string            `json:"pwd"`
 		Protocol coretype.Protocol `json:"protocol"`
 		Tag      string            `json:"tag"`
 		Status   string            `json:"status"`

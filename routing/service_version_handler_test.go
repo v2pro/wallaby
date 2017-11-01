@@ -63,7 +63,7 @@ func TestService(t *testing.T) {
 	}
 
 	// set
-	set_json := []byte(`{"address" : "1", "name" : "test", "version" : "1.0.0", "status" : "Running", "value" : 10, "operator" : "random"}`)
+	set_json := []byte(`{"address" : "1", "name" : "test", "version" : "1.0.0", "pwd":"/home/work/1_0_0", "status" : "Running", "value" : 10, "operator" : "random"}`)
 	t.Logf("%v", string(set_json))
 	req, _ = http.NewRequest("GET", host+"/set", bytes.NewBuffer(set_json))
 	resp, err = client.Do(req)
@@ -92,6 +92,7 @@ func TestService(t *testing.T) {
 		}
 		util.AssertEqual(t, len(vs), 1, "one addr")
 		util.AssertEqual(t, vs[0].Status, Running, "running status")
+		util.AssertEqual(t, vs[0].PWD, "/home/work/1_0_0", "running status")
 
 	} else {
 		t.Logf("%v", err)
