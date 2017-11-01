@@ -36,4 +36,5 @@ type RoutingStrategy interface {
 	GetServiceKind(cr *ClientRequest) *ServiceKind
 	SelectOneInst(sk *ServiceKind) (*ServiceInstance, error)
 	GetRoutingDecision(inst *ServiceInstance) *RoutingDecision
+	Close() error
 }

@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/v2pro/plz/countlog"
 	"github.com/v2pro/wallaby/server"
 	"runtime"
-	"github.com/v2pro/plz/countlog"
 )
 
 func main() {
@@ -13,5 +13,6 @@ func main() {
 		countlog.NewFileLogOutput("STDERR"))
 	asyncLogWriter.Start()
 	countlog.LogWriters = append(countlog.LogWriters, asyncLogWriter)
-	server.Start()
+	proxy := server.ProxyServer{}
+	proxy.Start()
 }

@@ -6,7 +6,6 @@ import (
 	"github.com/v2pro/wallaby/config"
 	"github.com/v2pro/wallaby/core"
 	"github.com/v2pro/wallaby/core/codec"
-	"github.com/v2pro/wallaby/routing"
 	"io"
 	"net"
 	"time"
@@ -17,9 +16,14 @@ type stream struct {
 	svrCodec   codec.Codec
 	svrCapture *codec.Capture
 	cltCapture *codec.Capture
+	srs        core.RoutingStrategy
 }
 
-func newStream(svr *net.TCPConn, svrCodec codec.Codec) *stream {
+func (srm *stream) SetRoutingStrategy(srs core.RoutingStrategy) {
+	srm.srs = srs
+}
+
+func newStream(svr *net.TCPConn, svrCodec codec.Codec, srs core.RoutingStrategy) *stream {
 	svrCapture := &codec.Capture{}
 	err := svrCapture.SetReader(svr)
 	if err != nil {
@@ -32,6 +36,7 @@ func newStream(svr *net.TCPConn, svrCodec codec.Codec) *stream {
 		svrCodec:   svrCodec,
 		svrCapture: svrCapture,
 		cltCapture: cltCapture,
+		srs:        srs,
 	}
 }
 
@@ -60,14 +65,14 @@ func (srm *stream) roundtrip() bool {
 	if req == nil {
 		return false
 	}
-	srs := &routing.SimpleRoutingStrategy{}
 	target, err := core.HowToRoute(&core.ServerRequest{
 		Packet: req,
-	}, srs)
+	}, srm.srs)
 	if err != nil {
 		countlog.Warn("event!server.failed to connect client", "err", err)
 		return false
 	}
+
 	clt, err := client.Get(target.ServiceInstance)
 	if err != nil {
 		countlog.Warn("event!server.failed to connect client", "err", err)

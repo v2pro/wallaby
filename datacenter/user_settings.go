@@ -112,7 +112,7 @@ func NewRoutingSetting(hashkey string, operator string, val string) *RoutingSett
 
 // IsEmpty checks if any value is empty
 func (rs RoutingSetting) IsEmpty() bool {
-	if rs.Hashkey == "" {
+	if rs.Hashkey == "" && rs.Operator != OperatorRandom {
 		return true
 	}
 	if rs.Operator == "" {

@@ -15,7 +15,7 @@ type SimpleRoutingStrategy struct {
 }
 
 // LocateClientService simply get service from wallaby_services.json
-func (srs SimpleRoutingStrategy) LocateClientService(sr *core.ServerRequest) (*core.ClientRequest, error) {
+func (srs *SimpleRoutingStrategy) LocateClientService(sr *core.ServerRequest) (*core.ClientRequest, error) {
 	clientService := &core.ClientRequest{}
 	clientService.ServerRequest = sr
 	serviceFrom := sr.Packet.GetFeature("x-wallaby-downstream-service")
@@ -29,7 +29,7 @@ func (srs SimpleRoutingStrategy) LocateClientService(sr *core.ServerRequest) (*c
 }
 
 // GetServiceKind decides the version of service for the given request and return a ServiceKind of that version
-func (srs SimpleRoutingStrategy) GetServiceKind(cr *core.ClientRequest) *core.ServiceKind {
+func (srs *SimpleRoutingStrategy) GetServiceKind(cr *core.ClientRequest) *core.ServiceKind {
 	sk := &core.ServiceKind{}
 	sk.Protocol = coretype.HTTP
 	sk.Name = cr.DstServiceName
@@ -57,7 +57,7 @@ func (srs SimpleRoutingStrategy) GetServiceKind(cr *core.ClientRequest) *core.Se
 }
 
 // SelectOneInst just read the ip address from  wallaby_services.json and return ServiceInstance
-func (srs SimpleRoutingStrategy) SelectOneInst(sk *core.ServiceKind) (*core.ServiceInstance, error) {
+func (srs *SimpleRoutingStrategy) SelectOneInst(sk *core.ServiceKind) (*core.ServiceInstance, error) {
 	ipString, err := FindServiceKindAddr(sk)
 	if err != nil {
 		return nil, err
@@ -67,17 +67,21 @@ func (srs SimpleRoutingStrategy) SelectOneInst(sk *core.ServiceKind) (*core.Serv
 		return nil, err
 	}
 	inst := &core.ServiceInstance{
-		Kind: sk,
-		RemoteAddr:  addr,
+		Kind:       sk,
+		RemoteAddr: addr,
 	}
 	return inst, nil
 }
 
 // GetRoutingDecision return the default RoutingDecision
-func (srs SimpleRoutingStrategy) GetRoutingDecision(inst *core.ServiceInstance) *core.RoutingDecision {
+func (srs *SimpleRoutingStrategy) GetRoutingDecision(inst *core.ServiceInstance) *core.RoutingDecision {
 	return &core.RoutingDecision{
 		ServiceInstance: inst,
 		Verdict:         core.Accept,
 		WaitDuration:    time.Millisecond * 50,
 	}
+}
+
+func (srs *SimpleRoutingStrategy) Close() error {
+	return nil
 }

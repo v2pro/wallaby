@@ -1,4 +1,4 @@
-package version
+package routing
 
 import (
 	"bytes"
@@ -7,23 +7,25 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 )
 
 func TestService(t *testing.T) {
-	port := 18022
-	filepath := "test.json"
-	defer os.Remove(filepath)
-	server := NewInboundService(port, filepath)
+	addr := "127.0.0.1:18022"
+	filePath := "test.json"
+	defer os.Remove(filePath)
+	thisVersions := NewServiceVersions(filePath)
+	if thisVersions.Start() != nil {
+		panic("start thisVersions fail")
+	}
+	server := NewInboundService(addr, thisVersions)
 	server.Start()
 	defer server.Shutdown()
 	time.Sleep(100 * time.Millisecond)
 
 	client := &http.Client{}
-	host := "http://localhost:" + strconv.Itoa(port)
-
+	host := "http://" + addr
 	// empty list
 	req, _ := http.NewRequest("GET", host+"/list", nil)
 	resp, err := client.Do(req)
@@ -61,13 +63,15 @@ func TestService(t *testing.T) {
 	}
 
 	// set
-	set_json := []byte(`{"address" : "1", "name" : "test", "version" : "1.0.0", "status" : "Running", "priority" : 10}`)
+	set_json := []byte(`{"address" : "1", "name" : "test", "version" : "1.0.0", "status" : "Running", "value" : 10, "operator" : "random"}`)
 	t.Logf("%v", string(set_json))
 	req, _ = http.NewRequest("GET", host+"/set", bytes.NewBuffer(set_json))
 	resp, err = client.Do(req)
 	defer req.Body.Close()
 	if err == nil {
 		util.AssertEqual(t, 200, resp.StatusCode, "get 200")
+	} else {
+		panic("set fail")
 	}
 
 	// list again

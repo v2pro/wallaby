@@ -104,6 +104,7 @@ type ServiceNode struct {
 	Version  string `json:"version"`
 	Address  string `json:"address"`
 	Protocol string `json:"protocol"`
+	Tag      string `json:"tag"`
 }
 
 func resolveService(node *ServiceNode) (*core.ServiceKind, error) {
@@ -112,5 +113,6 @@ func resolveService(node *ServiceNode) (*core.ServiceKind, error) {
 	s.Cluster = node.Cluster
 	s.Version = node.Version
 	s.Protocol = coretype.Protocol(node.Protocol)
+	s.Tag = node.Tag
 	return s, nil
 }

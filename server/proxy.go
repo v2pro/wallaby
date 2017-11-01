@@ -5,35 +5,53 @@ import (
 	"github.com/v2pro/wallaby/config"
 	"github.com/v2pro/wallaby/core"
 	"github.com/v2pro/wallaby/core/codec"
+	"github.com/v2pro/wallaby/routing"
 	"net"
 )
 
+type ProxyServer struct {
+	conn            net.Conn
+	routingStrategy core.RoutingStrategy
+}
+
 // Start runs the main wallaby server, handle incoming requests and dispatch to clients
-func Start() {
+func (p *ProxyServer) Start() error {
 	addr := config.ProxyAddr
+	p.routingStrategy = routing.NewVersionRoutingStrategy(
+		config.ProxyServiceName, config.ProxyServiceVersionConfig, config.VersionHandlerAddr)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		countlog.Error("event!server.failed to bind proxy port", "err", err)
-		return
+		return err
 	}
 	countlog.Info("event!server.started", "addr", addr)
 	for {
-		conn, err := listener.Accept()
+		p.conn, err = listener.Accept()
 		if err != nil {
 			countlog.Error("event!server.failed to accept outbound", "err", err)
-			return
+			return err
 		}
 		serverConn := &core.ServerConn{
-			LocalAddr:  conn.LocalAddr().(*net.TCPAddr),
-			RemoteAddr: conn.RemoteAddr().(*net.TCPAddr),
+			LocalAddr:  p.conn.LocalAddr().(*net.TCPAddr),
+			RemoteAddr: p.conn.RemoteAddr().(*net.TCPAddr),
 		}
 		connForwardingDecision := core.HowToForward(serverConn)
 		switch connForwardingDecision.RoutingMode {
 		case core.PerPacket:
 			decoder := codec.Codecs[connForwardingDecision.ServerProtocol]
-			go newStream(conn.(*net.TCPConn), decoder).proxy()
+			go newStream(p.conn.(*net.TCPConn), decoder, p.routingStrategy).proxy()
 		default:
 			panic("RoutingMode not supported yet: " + connForwardingDecision.RoutingMode)
 		}
+	}
+	return nil
+}
+
+func (p *ProxyServer) Stop() {
+	if p.conn != nil {
+		p.conn.Close()
+	}
+	if p.routingStrategy != nil {
+		p.routingStrategy.Close()
 	}
 }

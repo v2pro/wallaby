@@ -1,30 +1,32 @@
 package codec
 
 import (
-	"net/http"
-	"io"
 	"fmt"
-	"reflect"
+	"io"
 	"io/ioutil"
+	"net/http"
+	"reflect"
 )
 
 type httpRequestPacket struct {
 	*http.Request
-	body []byte
+	body    []byte
 	origReq []byte
 }
 
 func (req *httpRequestPacket) GetFeature(key string) string {
+	// TODO
 	return ""
 }
 
 type httpResponsePacket struct {
 	*http.Response
-	body []byte
+	body     []byte
 	origResp []byte
 }
 
 func (resp *httpResponsePacket) GetFeature(key string) string {
+	// TODO
 	return ""
 }
 
@@ -43,7 +45,7 @@ func (codec *httpCodec) DecodeRequest(capture *Capture) (Packet, error) {
 	}
 	return &httpRequestPacket{
 		Request: httpReq,
-		body: body,
+		body:    body,
 		origReq: capture.Bytes(),
 	}, nil
 }
@@ -60,7 +62,7 @@ func (codec *httpCodec) DecodeResponse(capture *Capture) (Packet, error) {
 	}
 	return &httpResponsePacket{
 		Response: httpResp,
-		body: body,
+		body:     body,
 		origResp: capture.Bytes(),
 	}, nil
 }

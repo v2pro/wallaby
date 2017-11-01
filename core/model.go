@@ -51,6 +51,10 @@ type ServiceKind struct {
 	Version string
 	// one running service os process might speak more than one protocol on different tcp ports
 	Protocol coretype.Protocol
+	// tag of this service
+	Tag string
+	// packet of request
+	Packet codec.Packet
 }
 
 // Qualifier to qualifier string

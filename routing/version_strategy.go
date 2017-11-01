@@ -1,83 +1,107 @@
 package routing
 
 import (
-	"github.com/v2pro/wallaby/core"
-	"github.com/v2pro/wallaby/core/coretype"
-
 	"github.com/v2pro/plz/countlog"
-	"github.com/v2pro/wallaby/datacenter"
+	"github.com/v2pro/wallaby/core"
+	"github.com/v2pro/wallaby/core/codec"
+	"github.com/v2pro/wallaby/core/coretype"
 	"net"
 	"time"
 )
 
-// SimpleRoutingStrategy is for http only
-type SimpleRoutingStrategy struct {
+var LOCALHOST = "localhost"
+
+// VersionRoutingStrategy is for http only
+type VersionRoutingStrategy struct {
+	versions        *ServiceVersions
+	versionsHandler *InboundService
+	serviceName     string
+}
+
+func NewVersionRoutingStrategy(service string, filePath string, handlerAddr string) *VersionRoutingStrategy {
+	var versions = NewServiceVersions(filePath)
+	if versions == nil {
+		countlog.Info("event!select-version", "NewVersionRoutingStrategy ", service)
+		return nil
+	}
+	err := versions.Start()
+	if err != nil {
+		countlog.Info("event!select-version", "NewVersionRoutingStrategy ", "start fail")
+		return nil
+	}
+	var versionsHandler = NewInboundService(handlerAddr, versions)
+	versionsHandler.Start()
+	return &VersionRoutingStrategy{
+		versions:        versions,
+		serviceName:     service,
+		versionsHandler: versionsHandler,
+	}
+}
+
+func (vrs *VersionRoutingStrategy) ServiceVersions() *ServiceVersions {
+	return vrs.versions
+}
+
+func (vrs *VersionRoutingStrategy) Route(packet codec.Packet) *ServiceVersion {
+	sv := vrs.versions.Route(packet)
+	if sv != nil {
+		countlog.Debug("event!Route", "addr", sv.Address)
+	}
+	return sv
 }
 
 // LocateClientService simply get service from wallaby_services.json
-func (srs SimpleRoutingStrategy) LocateClientService(sr *core.ServerRequest) (*core.ClientRequest, error) {
+func (vrs *VersionRoutingStrategy) LocateClientService(sr *core.ServerRequest) (*core.ClientRequest, error) {
 	clientService := &core.ClientRequest{}
 	clientService.ServerRequest = sr
-	serviceFrom := sr.Packet.GetFeature("x-wallaby-downstream-service")
-	clusterFrom := sr.Packet.GetFeature("x-wallaby-downstream-cluster")
-	clientService.SrcServiceName = serviceFrom
-	clientService.SrcServiceCluster = clusterFrom
-	// just pick the first one, assuming all the services are same
-	node := GetCurrentServiceNode()
-	clientService.DstServiceName = node.Service
+	// to localhost service
+	clientService.SrcServiceName = LOCALHOST
+	clientService.SrcServiceCluster = LOCALHOST
+	clientService.DstServiceName = vrs.serviceName
 	return clientService, nil
 }
 
 // GetServiceKind decides the version of service for the given request and return a ServiceKind of that version
-func (srs SimpleRoutingStrategy) GetServiceKind(cr *core.ClientRequest) *core.ServiceKind {
+func (vrs *VersionRoutingStrategy) GetServiceKind(cr *core.ClientRequest) *core.ServiceKind {
 	sk := &core.ServiceKind{}
+	sk.Packet = cr.ServerRequest.Packet
 	sk.Protocol = coretype.HTTP
 	sk.Name = cr.DstServiceName
-	// try the same cluster as the upstream first
-	sk.Cluster = cr.SrcServiceCluster
-	if sk.Cluster == "" {
-		node := GetCurrentServiceNode()
-		sk.Cluster = node.Cluster
-	}
-	// we can choose the version based on deviceID/ip/Cityid/USN(module identifier)/...
-	routingSetting := datacenter.GetRoutingSetting()
-	if routingSetting.IsValid() {
-		// for example, x-forwarded-for regex [12345]$, Cityid >= 10000, etc.
-		hashVal := cr.ServerRequest.Packet.GetFeature(routingSetting.Hashkey)
-		if routingSetting.RunRoutingRule(hashVal) {
-			sk.Version = GetNextVersion()
-		} else {
-			sk.Version = GetCurrentVersion()
-		}
-	} else {
-		sk.Version = GetCurrentVersion()
-	}
-	countlog.Info("event!select-version", "version", sk.Version)
+	sk.Cluster = LOCALHOST
 	return sk
 }
 
 // SelectOneInst just read the ip address from  wallaby_services.json and return ServiceInstance
-func (srs SimpleRoutingStrategy) SelectOneInst(sk *core.ServiceKind) (*core.ServiceInstance, error) {
-	ipString, err := FindServiceKindAddr(sk)
+func (vrs *VersionRoutingStrategy) SelectOneInst(sk *core.ServiceKind) (*core.ServiceInstance, error) {
+	var ver *ServiceVersion = vrs.Route(sk.Packet)
+
+	if ver == nil {
+		return nil, nil
+	}
+
+	addr, err := net.ResolveTCPAddr("tcp", ver.Address)
 	if err != nil {
 		return nil, err
 	}
-	addr, err := net.ResolveTCPAddr("tcp", ipString)
-	if err != nil {
-		return nil, err
-	}
-	inst := &core.ServiceInstance{
-		Kind: sk,
-		RemoteAddr:  addr,
-	}
-	return inst, nil
+	// set the address and version back ServiceKind
+	sk.Name = ver.Address
+	sk.Version = ver.Version
+	countlog.Debug("event!select-version", "version", addr)
+	return &core.ServiceInstance{
+		Kind:       sk,
+		RemoteAddr: addr,
+	}, nil
 }
 
 // GetRoutingDecision return the default RoutingDecision
-func (srs SimpleRoutingStrategy) GetRoutingDecision(inst *core.ServiceInstance) *core.RoutingDecision {
+func (vrs *VersionRoutingStrategy) GetRoutingDecision(inst *core.ServiceInstance) *core.RoutingDecision {
 	return &core.RoutingDecision{
 		ServiceInstance: inst,
 		Verdict:         core.Accept,
 		WaitDuration:    time.Millisecond * 50,
 	}
+}
+
+func (vrs *VersionRoutingStrategy) Close() error {
+	return vrs.versionsHandler.Shutdown()
 }

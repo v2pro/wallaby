@@ -1,20 +1,18 @@
-package version
+package routing
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/v2pro/plz/countlog"
-	"github.com/v2pro/wallaby/routing"
+	//"github.com/v2pro/plz/countlog"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 )
 
-func list(versions *routing.ServiceVersions) func(w http.ResponseWriter, r *http.Request) {
+func list(versions *ServiceVersions) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var vs []routing.ServiceVersion
+		var vs []ServiceVersion
 		for _, v := range versions.List() {
 			vs = append(vs, *v)
 		}
@@ -28,14 +26,14 @@ func list(versions *routing.ServiceVersions) func(w http.ResponseWriter, r *http
 	}
 }
 
-func set(versions *routing.ServiceVersions) func(w http.ResponseWriter, r *http.Request) {
+func set(versions *ServiceVersions) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		decode := json.NewDecoder(r.Body)
-		var s routing.ServiceVersion
+		var s ServiceVersion
 		err := decode.Decode(&s)
 		if err != nil {
-			fmt.Printf("error %v", err)
+			fmt.Printf("error %v at set %v", err, s)
 			w.WriteHeader(501)
 			return
 		}
@@ -48,7 +46,8 @@ func set(versions *routing.ServiceVersions) func(w http.ResponseWriter, r *http.
 		}
 	}
 }
-func get(versions *routing.ServiceVersions) func(w http.ResponseWriter, r *http.Request) {
+
+func get(versions *ServiceVersions) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s := versions.Get()
 		if s == nil {
@@ -61,10 +60,11 @@ func get(versions *routing.ServiceVersions) func(w http.ResponseWriter, r *http.
 		}
 	}
 }
-func del(versions *routing.ServiceVersions) func(w http.ResponseWriter, r *http.Request) {
+
+func del(versions *ServiceVersions) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decode := json.NewDecoder(r.Body)
-		var s routing.ServiceVersion
+		var s ServiceVersion
 		err := decode.Decode(&s)
 		if err != nil {
 			fmt.Printf("error %v", err)
@@ -90,19 +90,13 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type InboundService struct {
-	port    int
+	addr    string
 	mux     *http.ServeMux
 	server  *http.Server
-	version *routing.ServiceVersions
+	version *ServiceVersions
 }
 
-func NewInboundService(port int, versionFilePath string) *InboundService {
-	thisVersions := routing.NewServiceVersions(versionFilePath)
-	if thisVersions.Start() != nil {
-		panic("start thisVersions fail")
-		countlog.Error("event!NewInboundService", "New ", "start thisVersions fail")
-		return nil
-	}
+func NewInboundService(addr string, thisVersions *ServiceVersions) *InboundService {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/hello", helloHandler)
@@ -114,9 +108,9 @@ func NewInboundService(port int, versionFilePath string) *InboundService {
 	mux.HandleFunc("/del", del(thisVersions))
 
 	return &InboundService{
-		port:    port,
+		addr:    addr,
 		mux:     mux,
-		server:  &http.Server{Addr: ":" + strconv.Itoa(port), Handler: mux},
+		server:  &http.Server{Addr: addr, Handler: mux},
 		version: thisVersions,
 	}
 }
@@ -129,7 +123,7 @@ func (s *InboundService) Start() {
 	}()
 }
 
-func (s *InboundService) Shutdown() {
+func (s *InboundService) Shutdown() error {
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	s.server.Shutdown(ctx)
+	return s.server.Shutdown(ctx)
 }

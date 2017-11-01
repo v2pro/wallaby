@@ -6,6 +6,7 @@ import (
 	"github.com/v2pro/wallaby/util"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -13,7 +14,9 @@ import (
 
 func TestService(t *testing.T) {
 	port := 18022
-	server := NewInboundService(port)
+	filepath := "test.json"
+	defer os.Remove(filepath)
+	server := NewInboundService(port, filepath)
 	server.Start()
 	defer server.Shutdown()
 	time.Sleep(100 * time.Millisecond)
