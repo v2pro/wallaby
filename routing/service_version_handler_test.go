@@ -19,7 +19,7 @@ func TestService(t *testing.T) {
 	if thisVersions.Start() != nil {
 		panic("start thisVersions fail")
 	}
-	server := NewInboundService(addr, thisVersions)
+	server := NewInboundService(addr, thisVersions, 1)
 	server.Start()
 	defer server.Shutdown()
 	time.Sleep(100 * time.Millisecond)

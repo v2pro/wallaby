@@ -11,6 +11,7 @@ func main() {
 	asyncLogWriter := countlog.NewAsyncLogWriter(
 		countlog.LEVEL_INFO,
 		countlog.NewFileLogOutput("STDERR"))
+	asyncLogWriter.LogFormatter = &countlog.CompactFormat{}
 	asyncLogWriter.Start()
 	countlog.LogWriters = append(countlog.LogWriters, asyncLogWriter)
 	proxy := server.ProxyServer{}

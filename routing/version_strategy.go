@@ -18,7 +18,8 @@ type VersionRoutingStrategy struct {
 	serviceName     string
 }
 
-func NewVersionRoutingStrategy(service string, filePath string, handlerAddr string) *VersionRoutingStrategy {
+func NewVersionRoutingStrategy(service string, filePath string,
+	handlerAddr string, buildTimeStamp int) *VersionRoutingStrategy {
 	var versions = NewServiceVersions(filePath)
 	if versions == nil {
 		countlog.Info("event!select-version", "NewVersionRoutingStrategy ", service)
@@ -29,7 +30,7 @@ func NewVersionRoutingStrategy(service string, filePath string, handlerAddr stri
 		countlog.Info("event!select-version", "NewVersionRoutingStrategy ", "start fail")
 		return nil
 	}
-	var versionsHandler = NewInboundService(handlerAddr, versions)
+	var versionsHandler = NewInboundService(handlerAddr, versions, buildTimeStamp)
 	versionsHandler.Start()
 	return &VersionRoutingStrategy{
 		versions:        versions,

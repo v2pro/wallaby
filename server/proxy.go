@@ -18,7 +18,10 @@ type ProxyServer struct {
 func (p *ProxyServer) Start() error {
 	addr := config.ProxyAddr
 	p.routingStrategy = routing.NewVersionRoutingStrategy(
-		config.ProxyServiceName, config.ProxyServiceVersionConfig, config.VersionHandlerAddr)
+		config.ProxyServiceName,
+		config.ProxyServiceVersionConfig,
+		config.VersionHandlerAddr,
+		config.ProxyBuildTimestamp)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		countlog.Error("event!server.failed to bind proxy port", "err", err)

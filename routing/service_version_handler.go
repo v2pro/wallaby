@@ -7,6 +7,7 @@ import (
 	//"github.com/v2pro/plz/countlog"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -81,38 +82,44 @@ func del(versions *ServiceVersions) func(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func helloHandler(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "Hello, world!\n")
-}
-
-func echoHandler(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, r.URL.Path)
+func helloHandler(buildTimeStamp int) func(w http.ResponseWriter, r *http.Request) {
+	var timestampStr = strconv.Itoa(buildTimeStamp)
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Build-Timestamp", timestampStr)
+	}
 }
 
 type InboundService struct {
-	addr    string
-	mux     *http.ServeMux
-	server  *http.Server
-	version *ServiceVersions
+	addr           string
+	mux            *http.ServeMux
+	server         *http.Server
+	version        *ServiceVersions
+	buildTimeStamp int
 }
 
-func NewInboundService(addr string, thisVersions *ServiceVersions) *InboundService {
+func NewInboundService(addr string,
+	thisVersions *ServiceVersions,
+	buildTimeStamp int) *InboundService {
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/hello", helloHandler)
-	mux.HandleFunc("/echo", echoHandler)
+
+	// return proxy build timestamp
+	mux.HandleFunc("/hello", helloHandler(buildTimeStamp))
 
 	mux.HandleFunc("/list", list(thisVersions))
 	mux.HandleFunc("/set", set(thisVersions))
 	mux.HandleFunc("/get", get(thisVersions))
 	mux.HandleFunc("/del", del(thisVersions))
 
-	return &InboundService{
-		addr:    addr,
-		mux:     mux,
-		server:  &http.Server{Addr: addr, Handler: mux},
-		version: thisVersions,
+	inboundService := &InboundService{
+		addr:           addr,
+		mux:            mux,
+		server:         &http.Server{Addr: addr, Handler: mux},
+		version:        thisVersions,
+		buildTimeStamp: buildTimeStamp,
 	}
+
+	return inboundService
 }
 
 func (s *InboundService) Start() {

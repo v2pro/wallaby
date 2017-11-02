@@ -23,7 +23,7 @@ var config_file = "version_strategy_test.json"
 
 func CreateRandomServiceVersionStrategy() *VersionRoutingStrategy {
 
-	var vrs = NewVersionRoutingStrategy("test", config_file, "127.0.0.1:12345")
+	var vrs = NewVersionRoutingStrategy("test", config_file, "127.0.0.1:12345", 1)
 	if vrs == nil {
 		panic("NewVersionRoutingStrategy fail")
 	}

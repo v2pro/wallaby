@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"github.com/v2pro/plz/countlog"
 	"github.com/v2pro/wallaby/config"
-	"github.com/v2pro/wallaby/server"
 	"net/http"
 	"os"
 	"runtime"
@@ -57,14 +56,15 @@ func StartEchoServer(addr string) *http.Server {
 	return server
 }
 
-func StartProxyServer() *server.ProxyServer {
+func StartProxyServer() *ProxyServer {
 	asyncLogWriter := countlog.NewAsyncLogWriter(
 		countlog.LEVEL_INFO,
 		//countlog.LEVEL_DEBUG,
 		countlog.NewFileLogOutput("STDERR"))
+	asyncLogWriter.LogFormatter = &countlog.CompactFormat{}
 	asyncLogWriter.Start()
 	countlog.LogWriters = append(countlog.LogWriters, asyncLogWriter)
-	proxy := server.ProxyServer{}
+	proxy := ProxyServer{}
 	go func() {
 		if err := proxy.Start(); err != nil {
 			countlog.Error("event!server.failed to accept outbound", "err", err)
