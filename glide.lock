@@ -1,8 +1,8 @@
 hash: 3c885f6bd1cc52c4741de9303ecaeddc48d5733e151628a21b742ced6ac4f609
-updated: 2017-10-09T15:11:41.835233959+08:00
+updated: 2017-11-03T15:43:40.728444264+08:00
 imports:
 - name: github.com/v2pro/plz
-  version: 46cb782c25084451a07aaeeb6e588e4b9f712563
+  version: aa0114dfbe7b6b766d970297ac8f4de25710c2bc
   subpackages:
   - countlog
 - name: go.uber.org/atomic
