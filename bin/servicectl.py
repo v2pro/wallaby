@@ -8,41 +8,45 @@ import datetime
 import signal
 import time
 
-# ===== biz-module requirements =====
-# the whole process start with: (get called by deploy system)
-#       biz-module/control.sh start
+# ===== app REQUIREMENTS =====
+# 1. the whole process must start with: (get called by deploy system)
+#       app/control.sh start
 
-# biz-module/control.sh start:
-#   export WALLABY_SERVICES="tag1:8005 tag2:8006 tag3:8007"
+# 2. `app/control.sh start` is required, the command must provide the following part:
+#   export WALLABY_APPS="tag1:8005 tag2:8006 tag3:8007"
 #   wallaby/servicectl.py start
 
-# biz-module/wcontrol.sh is required,
-#   start|stop must be provided so that the biz process can be managed by wallaby
+# 3. `app/wcontrol.sh {start|stop}` is required,
+#   so that the app process can be managed by wallaby
 
-# ===== instructions =====
+# 4. wallaby executable must sit in app/bin/wallaby
+
+
+# ===== INSTRUCTIONS =====
 # servicectl provides:
-# 1. public command interface: exposed to biz-module
+# 1. public command interface: exposed to app
 # 2. wallaby proxy commands
 # 3. wallaby app commands
 
 # Please see help() for more information.
 
-# ===== ENVIRONMENTS =====
-# passed from biz modules, e.g., biz-module/control.sh
 
-# WALLABY_SERVICES:
+# ===== ENVIRONMENTS =====
+# provided by app, e.g., app/control.sh
+
+# WALLABY_APPS:
 #       format: {tag-name}:{port} {tag-name2}:{port2}...
 #       e.g., "tag1:8005 tag2:8006 tag3:8007"
 
-# WALLABY_BIZ_MODULE_DIR: the directory of biz module
+# WALLABY_APP_DIR: the directory of app
 
 
 # ===== GLOBALS =====
-# all the biz modules will be deployed under WALLABY_DEPLOY_ROOT
-WALLABY_DEPLOY_ROOT="/tmp/wallaby_services/versions"
+# all the apps will be deployed under WALLABY_DEPLOY_ROOT
+WALLABY_DEPLOY_ROOT="/tmp/wallaby_apps/versions"
 
-# all the biz module process pids are saved in WALLABY_SERVICE_PROC_DIR
-WALLABY_SERVICE_PROC_DIR="/tmp/wallaby_services/proc"
+# all the app process pids are saved in WALLABY_APP_PROC_DIR
+WALLABY_APP_PROC_DIR="/tmp/wallaby_apps/proc"
 
 WALLABY_PIDFILE="/tmp/wallaby-proxy.pid"
 
@@ -53,9 +57,13 @@ def help():
     print "\n===== Manual =====\n"
     print sys.argv[0], "{start|stop|status|restart|appstart|appstop|appstatus|proxystart|proxystop|proxystatus}"
 
-def getBizModuleDir():
-    print os.environ["WALLABY_BIZ_MODULE_DIR"]
-    return os.environ["WALLABY_BIZ_MODULE_DIR"]
+def getAppDir():
+    print os.environ["WALLABY_APP_DIR"]
+    return os.environ["WALLABY_APP_DIR"]
+
+def getProxyExePath():
+    appPath = getAppDir()
+    return appPath + "/bin/wallaby"
 
 def getRunningVersions():
     global WALLABY_SERVER
@@ -72,10 +80,10 @@ def notifyNewVersion(data):
     response = urllib2.urlopen(req, json.dumps(data))
 
 def getNextVersion(runningMap):
-    serviceList = os.environ["WALLABY_SERVICES"].split()
+    appList = os.environ["WALLABY_APPS"].split()
     newVersion = {}
-    for service in serviceList:
-        tag, port = service.split(":")
+    for app in appList:
+        tag, port = app.split(":")
 
         address = "127.0.0.1:"+ port
         if address in runningMap:
@@ -92,46 +100,46 @@ def getNextVersion(runningMap):
     return newVersion
 
 def appStart(version, appPath):
-    if not os.path.exists(WALLABY_SERVICE_PROC_DIR):
-        os.makedirs(WALLABY_SERVICE_PROC_DIR)
+    if not os.path.exists(WALLABY_APP_PROC_DIR):
+        os.makedirs(WALLABY_APP_PROC_DIR)
     try:
         port = version["address"].split(":")[1]
         tag = version["tag"]
-        print "\n\n===== START APP: %s:%s" % (tag, port)
-        pidfile = WALLABY_SERVICE_PROC_DIR + "/" + tag + ".pid"
+        print "\n\n===== START APP [%s]:%s" % (tag, port)
+        pidfile = WALLABY_APP_PROC_DIR + "/" + tag + ".pid"
         startCmd = ["%s/wcontrol.sh" % (appPath), "start", tag]
         print " ".join(startCmd)
-        print "\n\n===== APP OUTPUT"
+        print "\n\n===== APP %s OUTPUT" % (tag)
         pid = subprocess.Popen(startCmd).pid
         f = open(pidfile, 'w')
         f.write(str(pid))
-        print "\n\n===== APP is RUNNING =====\npid: %d\npidfile: %s" % (pid, pidfile)
+        print "\n\n===== APP %s is RUNNING =====\npid: %d\npidfile: %s" % (tag, pid, pidfile)
         return True
     except subprocess.CalledProcessError as err:
         print err
         return False
 
 def appStop(tag):
-    pidfile = WALLABY_SERVICE_PROC_DIR + "/" + tag + ".pid"
+    pidfile = WALLABY_APP_PROC_DIR + "/" + tag + ".pid"
     f = open(pidfile, 'r')
     pid = int(f.read())
-    print "\n\n===== STOP APP"
+    print "\n\n===== STOP APP", tag
     try:
         os.kill(pid, 0)
         os.kill(pid, signal.SIGKILL)
-        print "APP is STOPPED, pid: %d" % pid
+        print "APP [%s] is STOPPED, pid: %d" % (tag, pid)
     except OSError:
-        print "APP is DOWN, pid: %d" % pid
+        print "APP [%s] is DOWN, pid: %d" % (tag, pid)
 
 def appStatus(tag):
-    pidfile = WALLABY_SERVICE_PROC_DIR + "/" + tag + ".pid"
+    pidfile = WALLABY_APP_PROC_DIR + "/" + tag + ".pid"
     f = open(pidfile, 'r')
     pid = int(f.read())
     try:
         os.kill(pid, 0)
-        print "APP is RUNNING, pid: %d" % pid
+        print "APP [%s] is RUNNING, pid: %d" % (tag, pid)
     except OSError:
-        print "APP is DOWN, pid: %d" % pid
+        print "APP [%s] is DOWN, pid: %d" % (tag, pid)
 
 def appStatusCmd():
     print "\n===== APP STATUS:"
@@ -157,7 +165,7 @@ def deploy(version, dst):
     print "\n\n===== DEPLOY ", version
     if not os.path.exists(dst):
         os.makedirs(dst)
-    deploycmd="rsync -avz %s/. %s" % (getBizModuleDir(), dst)
+    deploycmd="rsync -avz %s/. %s" % (getAppDir(), dst)
     print deploycmd
     try:
         subprocess.check_call(deploycmd, shell=True)
@@ -176,7 +184,7 @@ def proxyStartCmd():
         os.kill(pid, 0)
         print "WALLABY PROXY is ALREADY RUNNING, pid: %d" % pid
     except OSError:
-        pid = subprocess.Popen(["proxy"]).pid
+        pid = subprocess.Popen([getProxyExePath()]).pid
         print "===== WALLABY PROXY is RUNNING =====\npid: %d\npidfile: %s" % (pid, WALLABY_PIDFILE)
         print "please wait 2 seconds..."
         time.sleep(2)
@@ -217,10 +225,10 @@ def start():
         runningMap[v["address"]] = v
         print v["name"], ":", v["address"], v["version"], v["status"]
 
-    if len(os.environ["WALLABY_SERVICES"]) == 0:
-        print "WALLABY_SERVICES not found, exit"
+    if len(os.environ["WALLABY_APPS"]) == 0:
+        print "WALLABY_APPS not found, exit"
         exit(1)
-    print "WALLABY_SERVICES:", os.environ["WALLABY_SERVICES"]
+    print "WALLABY_APPS:", os.environ["WALLABY_APPS"]
     newVersion = getNextVersion(runningMap)
     if newVersion:
         release = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
