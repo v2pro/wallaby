@@ -256,7 +256,6 @@ func (s *ServiceVersions) Route(packet codec.Packet) *ServiceVersion {
 }
 
 func (s *ServiceVersions) load() error {
-	// TODO: if no file exists, empty config
 	f, ferr := os.OpenFile(s.filepath, os.O_RDWR|os.O_CREATE, 0755)
 	if ferr == nil {
 		f.Close()

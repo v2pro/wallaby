@@ -20,5 +20,5 @@ const (
 	ProxyServiceVersionConfig = "echo.json"
 
 	// ProxyServiceConfig is the file path of Service Version Config
-	ProxyBuildTimestamp = 1509593738
+	ProxyBuildTimestamp = 1509598098
 )

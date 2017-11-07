@@ -11,7 +11,7 @@ module=wallaby
 output="output"
 
 # change build timestamp 
-sed -i -e '/ProxyBuildTimestamp = / s/= .*/= '`date +%s`'/' config/config.go
+sed -i -e '/ProxyBuildTimestamp[[:space:]]*=/ s/=.*/= '`date +%s`'/' config/config.go
 
 
 go build -o $module cmd/proxy/main.go

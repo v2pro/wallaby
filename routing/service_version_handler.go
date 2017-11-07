@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	//"github.com/v2pro/plz/countlog"
+	"github.com/v2pro/plz/countlog"
 	"io"
 	"net/http"
 	"strconv"
@@ -34,11 +34,10 @@ func set(versions *ServiceVersions) func(w http.ResponseWriter, r *http.Request)
 		var s ServiceVersion
 		err := decode.Decode(&s)
 		if err != nil {
-			fmt.Printf("error %v at set %v", err, s)
+			countlog.Error("event!Version", "set", err)
 			w.WriteHeader(501)
 			return
 		}
-		fmt.Printf("input %v", s)
 
 		if ok := versions.Set(&s); !ok {
 			w.WriteHeader(501)
