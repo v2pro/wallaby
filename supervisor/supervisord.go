@@ -3,7 +3,6 @@ package supervisor
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/v2pro/plz/countlog"
 	"io"
 	"net/http"
@@ -107,5 +106,6 @@ func (s *Supervisord) Start() {
 
 func (s *Supervisord) Shutdown() error {
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	s.procMgr.StopAll()
 	return s.server.Shutdown(ctx)
 }
